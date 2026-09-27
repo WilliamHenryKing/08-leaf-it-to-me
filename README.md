@@ -1,6 +1,6 @@
 # LEAF IT TO ME
 
-**Status: v1 complete.** A miniature river adventure where you steer the wind. A beetle in a coat sails a curled leaf down three short reaches of one brook (the Flooded Flowerpot, the Root Tunnel and the Lantern Pond) to an evening lantern gathering. The current, eddies, calm pools and wind shadows are authored data shared by the rules, the tests and the water shader, so what you see on the water is what moves the boat. Built with Vite, React, strict TypeScript, three.js and GSAP; everything is procedural and there are no external assets or network calls.
+**Status: v1 complete.** A miniature river adventure where you steer the wind. A beetle in a coat sails a curled leaf down three short reaches of one brook (the Flooded Flowerpot, the Root Tunnel and the Lantern Pond) to an evening lantern gathering. The current, eddies, calm pools and wind shadows are authored data shared by the rules, the tests and the water shader, so what you see on the water is what moves the boat. Built with Vite, React, strict TypeScript, three.js and GSAP. The visuals are all procedural. Sound uses a small set of CC0 recordings (credited below), served from the site itself with no other network calls.
 
 ## How to play
 
@@ -11,7 +11,7 @@
 - Each reach has two passages. In reach 1 the current carries you straight at a fallen branch: slip left through the fast chute, or right into the sheltered lane past the flooded flowerpot. In reach 2 you can go beneath the root in its slow, sheltered tunnel or race the outside. In reach 3, ride the pond's gyre or cut across to the gathering.
 - Gather floating lanterns along the way. At the end, each one you bring lights up the gathering.
 - If the leaf gets stuck, a duck lifts it back to the calm pool at the start of that reach.
-- `↺` restarts and `?` shows the controls again.
+- `↺` restarts and `?` shows the controls again. The speaker button or `M` mutes sound, and the choice is remembered.
 
 ## Development
 
@@ -26,4 +26,21 @@ Layout: `src/game/` holds the pure rules and course data (tested in `tests/game.
 
 ## Credits
 
-All geometry, textures and shaders are generated in code for this project. There are no third-party assets. The type uses system font stacks.
+All geometry, textures and shaders are generated in code for this project. The type uses system font stacks.
+
+### Audio
+
+Sound starts on the first tap, click or key press. Music and ambience loop in code with crossfades. Everything was trimmed, mixed to mono and re-encoded as MP3 (about 1.1 MB in total) in `public/audio/`. Every source is **CC0 (public domain)**; credit is given as thanks, not as a requirement.
+
+| File | Used for | Source | Author | Licence |
+| --- | --- | --- | --- | --- |
+| `music.mp3` | Music (first 105 s of "Sunset Plains") | https://opengameart.org/content/sunset-plains | yoiyami | CC0 |
+| `river.mp3` | Brook ambience (excerpt of `park_ambience_river.wav`) | https://opengameart.org/content/park-ambiences | thimras | CC0 |
+| `birds.mp3` | Birdsong ambience (excerpt of `park_ambience_birds.wav`) | https://opengameart.org/content/park-ambiences | thimras | CC0 |
+| `splash-small.mp3`, `splash-big.mp3` | Bumps, spills, the duck setting the boat down (`splash_10`, `splash_07`) | https://opengameart.org/content/40-cc0-water-splash-slime-sfx | rubberduck | CC0 |
+| `sail.mp3` | The sail filling on each gust (`cloth1`) | https://kenney.nl/assets/rpg-audio | Kenney (kenney.nl) | CC0 |
+| `bump.mp3` | Hitting wood or stone (`impactWood_light_001`) | https://kenney.nl/assets/impact-sounds | Kenney (kenney.nl) | CC0 |
+| `lantern.mp3`, `click.mp3`, `toggle.mp3`, `aim.mp3` | Lantern gathered, buttons, mute, start of aiming (`glass_004`, `click_001`, `toggle_001`, `pluck_002`) | https://kenney.nl/assets/interface-sounds | Kenney (kenney.nl) | CC0 |
+| `checkpoint.mp3`, `finish.mp3` | New reach, arrival at the gathering (`jingles_PIZZI07`, `jingles_STEEL02`) | https://kenney.nl/assets/music-jingles | Kenney (kenney.nl) | CC0 |
+
+The gust's rush of air and the duck's quack are synthesized live with the Web Audio API (`src/audio/audio.ts`). No CC0 quack recording could be found.
