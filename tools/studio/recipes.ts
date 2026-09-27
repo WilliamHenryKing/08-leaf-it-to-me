@@ -71,7 +71,7 @@ const leaf: Build = (seed, index) => {
     blade = carve(L * 0.004, blade, capsule([0, y, L * 0.006], [-W * 0.45, y + L * 0.12, L * 0.006], L * 0.004, L * 0.002));
   }
   const rib = capsule([0, -L * 0.62, 0], [0, L * 0.45, 0], L * 0.012, L * 0.004, vein);
-  const curled = bend(rotate(union(blade, rib), [Math.PI / 2, 0, 0]), range(r, 2, 14) / L * 0.05);
+  const curled = bend(rotate(union(blade, rib), [Math.PI / 2, 0, 0]), Math.min(range(r, 2, 14) * 0.05 / L, 12));
   return mottle(curled, 0.12, 60 / L, seed);
 };
 const pebble: Build = (seed) => {
@@ -113,7 +113,7 @@ const beetle: Build = (seed) => {
 
 export const project = { id: "08-leaf-it-to-me", name: "LEAF IT TO ME", background: 0x26352f };
 export const families: Recipes["families"] = [
-  { id: "leaf", count: 60, voxel: 0.0005, keep: 0.25, build: leaf },
+  { id: "leaf", count: 60, voxel: 0.0005, keep: 0.25, elevation: 62, build: leaf },
   { id: "pebble", count: 40, voxel: 0.0008, keep: 0.25, build: pebble },
   { id: "twig", count: 20, voxel: 0.0008, keep: 0.3, build: twig },
   { id: "droplet", count: 8, voxel: 0.0002, keep: 0.4, build: droplet },
