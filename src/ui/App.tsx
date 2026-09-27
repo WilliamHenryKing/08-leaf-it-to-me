@@ -16,6 +16,28 @@ function Lantern({ lit }: { lit: boolean }) {
   );
 }
 
+function SpeakerIcon({ muted }: { muted: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" />
+      {muted ? (
+        <path d="M17 9l5 6M22 9l-5 6" />
+      ) : (
+        <path d="M17 8.5a5 5 0 0 1 0 7M19.5 6a8.5 8.5 0 0 1 0 12" />
+      )}
+    </svg>
+  );
+}
+
 function Panel({
   title,
   children,
@@ -53,8 +75,8 @@ export function App({ play }: { play: Play }) {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-10 select-none text-[var(--ink)]">
-      {sailing && (
-        <header className="flex items-start justify-between gap-3 p-3 sm:p-5">
+      <header className="flex items-start justify-between gap-3 p-3 sm:p-5">
+        {sailing ? (
           <div className="chip pointer-events-auto rounded-2xl px-4 py-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] opacity-70">
               Reach {s.reach + 1} of 3
@@ -77,26 +99,41 @@ export function App({ play }: { play: Play }) {
               </span>
             </div>
           </div>
-          <nav className="pointer-events-auto flex gap-2" aria-label="Game">
-            <button
-              type="button"
-              className="btn-round"
-              onClick={play.showHint}
-              aria-label="How to play"
-            >
-              ?
-            </button>
-            <button
-              type="button"
-              className="btn-round"
-              onClick={play.restart}
-              aria-label="Restart from the first reach"
-            >
-              ↺
-            </button>
-          </nav>
-        </header>
-      )}
+        ) : (
+          <span />
+        )}
+        <nav className="pointer-events-auto flex gap-2" aria-label="Game">
+          <button
+            type="button"
+            className="btn-round"
+            onClick={play.toggleMute}
+            aria-label={s.muted ? "Unmute sound (M)" : "Mute sound (M)"}
+            aria-pressed={s.muted}
+          >
+            <SpeakerIcon muted={s.muted} />
+          </button>
+          {sailing && (
+            <>
+              <button
+                type="button"
+                className="btn-round"
+                onClick={play.showHint}
+                aria-label="How to play"
+              >
+                ?
+              </button>
+              <button
+                type="button"
+                className="btn-round"
+                onClick={play.restart}
+                aria-label="Restart from the first reach"
+              >
+                ↺
+              </button>
+            </>
+          )}
+        </nav>
+      </header>
 
       {s.aim && (
         <div className="absolute inset-x-0 top-[22%] flex justify-center" aria-hidden="true">
@@ -134,7 +171,7 @@ export function App({ play }: { play: Play }) {
             </p>
             <p className="mt-1 opacity-80">
               Keys: <kbd>←</kbd> <kbd>→</kbd> turn · <kbd>↑</kbd> <kbd>↓</kbd> strength ·{" "}
-              <kbd>Space</kbd> blow · <kbd>Esc</kbd> cancel
+              <kbd>Space</kbd> blow · <kbd>Esc</kbd> cancel · <kbd>M</kbd> mute
             </p>
             <button type="button" className="btn mt-2" onClick={play.hideHint}>
               Got it

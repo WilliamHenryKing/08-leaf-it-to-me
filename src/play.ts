@@ -1,4 +1,6 @@
-// Wiring: the game loop joins the pure rules, the three.js world, input and the HUD store.
+// Wiring: the game loop joins the pure rules, the three.js world, input, sound and the HUD store.
+import { createAudio } from "./audio/audio";
+import { playCues } from "./audio/cues";
 import { createCourse } from "./game/course";
 import { windAt } from "./game/field";
 import {
@@ -43,6 +45,11 @@ export function createPlay(canvas: HTMLCanvasElement) {
   let aim: Aim | null = null;
   let toastId = 0;
   const world = createWorld(canvas, course, reducedMotion);
+  const audio = createAudio();
+  // Any first gesture starts the sound; M toggles mute everywhere.
+  const unlock = () => void audio.unlock();
+  window.addEventListener("pointerdown", unlock, { once: true });
+  window.addEventListener("keydown", unlock, { once: true });
 
   const store = createStore({
     status: state.status,
@@ -56,6 +63,7 @@ export function createPlay(canvas: HTMLCanvasElement) {
     aim: null,
     toast: null,
     hint: false,
+    muted: audio.muted,
   });
 
   const toast = (text: string) => store.set({ toast: { id: ++toastId, text } });
@@ -91,6 +99,7 @@ export function createPlay(canvas: HTMLCanvasElement) {
 
   const handle = (events: GameEvent[]) => {
     if (!events.length) return;
+    playCues(audio, events, state);
     world.onEvents(events, state, () => {
       rescue(course, state);
       handle(takeEvents(state));
@@ -103,6 +112,10 @@ export function createPlay(canvas: HTMLCanvasElement) {
     toGame: world.toGame,
     aim(angle, strength) {
       if (state.status !== "sailing") return;
+      if (!aim) {
+        audio.play("aim", 0.35);
+        audio.setFocus(true);
+      }
       aim = { angle, strength };
       sync();
     },
@@ -114,13 +127,26 @@ export function createPlay(canvas: HTMLCanvasElement) {
         }
       }
       aim = null;
+      audio.setFocus(false);
       handle(takeEvents(state));
       sync();
     },
     cancel() {
+      if (aim) audio.setFocus(false);
       aim = null;
       sync();
     },
+  });
+
+  const toggleMute = () => {
+    audio.setMuted(!audio.muted);
+    audio.play("toggle", 0.6);
+    store.set({ muted: audio.muted });
+  };
+  window.addEventListener("keydown", (e) => {
+    if ((e.key === "m" || e.key === "M") && !(e.target as HTMLElement | null)?.closest("input")) {
+      toggleMute();
+    }
   });
 
   const onResize = () => world.resize();
@@ -136,9 +162,13 @@ export function createPlay(canvas: HTMLCanvasElement) {
     if (!document.hidden) step(course, state, dt * scale);
     handle(takeEvents(state));
     world.frame(state, aim, dt, state.status !== "stranded");
+    audio.setWater(Math.hypot(state.vx, state.vy), state.reach === 2);
     if (firstFrame) {
       firstFrame = false;
-      requestAnimationFrame(() => worldReady());
+      requestAnimationFrame(() => {
+        worldReady();
+        audio.preload();
+      });
     }
     requestAnimationFrame(loop);
   };
@@ -146,7 +176,10 @@ export function createPlay(canvas: HTMLCanvasElement) {
 
   return {
     store,
+    toggleMute,
     start() {
+      void audio.unlock();
+      audio.play("click", 0.5);
       startSailing(state);
       store.set({ hint: !readHintSeen() });
       toast(`Reach 1 · ${course.reaches[0]?.name}`);
@@ -155,6 +188,9 @@ export function createPlay(canvas: HTMLCanvasElement) {
     restart() {
       state = createState(course);
       aim = null;
+      audio.setEnding(false);
+      audio.setFocus(false);
+      audio.play("click", 0.5);
       input.clear();
       world.reset(state);
       startSailing(state);
@@ -162,9 +198,11 @@ export function createPlay(canvas: HTMLCanvasElement) {
       sync();
     },
     showHint() {
+      audio.play("click", 0.5);
       store.set({ hint: true });
     },
     hideHint() {
+      audio.play("click", 0.5);
       store.set({ hint: false });
       writeHintSeen();
     },

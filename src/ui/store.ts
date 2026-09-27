@@ -13,6 +13,7 @@ export interface HudState {
   aim: { strength: number; spill: boolean; efficiency: number } | null;
   toast: { id: number; text: string } | null;
   hint: boolean;
+  muted: boolean;
 }
 
 export function createStore(initial: HudState) {
