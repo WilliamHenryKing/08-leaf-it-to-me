@@ -114,8 +114,8 @@ const beetle: Build = (seed) => {
 export const project = { id: "08-leaf-it-to-me", name: "LEAF IT TO ME", background: 0x26352f };
 export const families: Recipes["families"] = [
   { id: "leaf", count: 60, voxel: 0.0005, keep: 0.25, elevation: 62, build: leaf },
-  { id: "pebble", count: 40, voxel: 0.0008, keep: 0.25, build: pebble },
-  { id: "twig", count: 20, voxel: 0.0008, keep: 0.3, build: twig },
+  { id: "pebble", count: 80, voxel: 0.0008, keep: 0.25, build: pebble },
+  { id: "twig", count: 40, voxel: 0.0008, keep: 0.3, build: twig },
   { id: "droplet", count: 8, voxel: 0.0002, keep: 0.4, build: droplet },
   { id: "beetle-study", count: 12, voxel: 0.0002, keep: 0.3, hero: true, build: beetle },
 ];
