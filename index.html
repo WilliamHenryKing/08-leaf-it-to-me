@@ -6,17 +6,25 @@
     <title>LEAF IT TO ME</title>
     <meta name="description" content="Steer gusts around a tiny leaf boat on a miniature river" />
     <style>
-      /* Arrival veil: shown until worldReady() in src/loader.ts lifts it. Restyle to the art direction. */
-      #arrival { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; align-content: center; gap: 18px; background: #0d0f14; color: #f2efe6; font: 600 13px/1.2 system-ui, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; transition: opacity 0.6s ease, visibility 0.6s; }
+      /* Arrival veil: shown until worldReady() in src/loader.ts lifts it. Dusk over the brook. */
+      #arrival { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; align-content: center; gap: 20px; background: radial-gradient(120% 90% at 50% 40%, #3b4a2a 0%, #1d2616 60%, #11170d 100%); color: #f5ecd6; font: 600 13px/1.2 system-ui, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; transition: opacity 0.7s ease, visibility 0.7s; }
       #arrival.is-done { opacity: 0; visibility: hidden; }
-      #arrival .bar { width: 140px; height: 2px; background: #ffffff22; overflow: hidden; }
-      #arrival .bar i { display: block; height: 100%; width: 40%; background: currentColor; animation: arrival-slide 1.2s ease-in-out infinite; }
+      #arrival .leaf { width: 64px; height: 40px; }
+      #arrival .leaf g { transform-origin: 32px 24px; animation: arrival-bob 2.4s ease-in-out infinite; }
+      #arrival .glow { filter: drop-shadow(0 0 6px #ffb45a); }
+      #arrival .bar { width: 120px; height: 2px; background: #ffffff1f; overflow: hidden; border-radius: 2px; }
+      #arrival .bar i { display: block; height: 100%; width: 40%; background: #ffb45a; animation: arrival-slide 1.4s ease-in-out infinite; }
       @keyframes arrival-slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
-      @media (prefers-reduced-motion: reduce) { #arrival .bar i { animation: none; width: 100%; } }
+      @keyframes arrival-bob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(2px) rotate(3deg); } }
+      @media (prefers-reduced-motion: reduce) { #arrival .bar i { animation: none; width: 100%; } #arrival .leaf g { animation: none; } }
     </style>
   </head>
   <body>
-    <div id="arrival" role="status" aria-live="polite"><span>LEAF IT TO ME</span><div class="bar"><i></i></div></div>
+    <div id="arrival" role="status" aria-live="polite">
+      <svg class="leaf" viewBox="0 0 64 40" aria-hidden="true"><g><path d="M6 26 C18 36 46 36 58 26 C46 30 18 30 6 26Z" fill="#6f9a32"/><path d="M31 8 L31 27" stroke="#8a6a44" stroke-width="1.6"/><path d="M32 10 C40 13 40 21 32 24Z" fill="#f1e2c6"/><circle class="glow" cx="31" cy="7" r="2.4" fill="#ffb45a"/></g></svg>
+      <span>Leaf it to me</span>
+      <div class="bar"><i></i></div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
