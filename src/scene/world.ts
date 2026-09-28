@@ -17,6 +17,7 @@ import { createObstacles } from "./obstacles";
 import { createPlaces } from "./places";
 import { playRescue } from "./rescue";
 import { createStage, toWorld } from "./stage";
+import { createStones } from "./stones";
 import { createWater } from "./water";
 
 export interface Aim {
@@ -49,7 +50,13 @@ export function createWorld(
   const flow = createFlowFx(course);
   const groundUniforms = { uTime: { value: 0 }, uSun: { value: new THREE.Color() } };
   const ground = createGroundMaterial(assets, groundUniforms);
-  scene.add(water.mesh, createBanks(ground), createBankside(course), createObstacles(course));
+  scene.add(
+    water.mesh,
+    createBanks(ground),
+    createBankside(course, assets),
+    createStones(assets),
+    createObstacles(course, assets),
+  );
   const places = createPlaces(course);
   const mood = createMoodLight(stage);
   // Transparent surfaces and effects stay out of the ambient-occlusion depth pass.

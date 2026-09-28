@@ -1,7 +1,10 @@
 // Meshes for every collider in the course: branch, flowerpot, rocks, roots and lily pads.
 import * as THREE from "three";
 import { type Course, centreX, type Obstacle } from "../game/course";
+import type { Assets } from "./assets";
 import { rng, tube } from "./bankside";
+import { scannedRock } from "./stones";
+import { wetLine } from "./wet";
 
 const bark = new THREE.MeshStandardMaterial({ color: "#5b4330", roughness: 0.9 });
 const root = new THREE.MeshStandardMaterial({ color: "#4a3324", roughness: 0.85 });
@@ -22,6 +25,31 @@ const leafMat = new THREE.MeshStandardMaterial({
 const potWater = new THREE.MeshStandardMaterial({ color: "#1c2a20", roughness: 0.08 });
 
 const rand = rng(21);
+
+/** Scanned bark (Poly Haven bark_brown_02) on the branch and the roots, wet at the water. */
+function applyBark(assets: Assets) {
+  if (!assets.bark) return;
+  for (const [m, tint] of [
+    [bark, "#b9a58e"],
+    [root, "#8f7a66"],
+  ] as [THREE.MeshStandardMaterial, string][]) {
+    const set = assets.bark;
+    const t = (tex: THREE.Texture) => {
+      const c = tex.clone();
+      c.repeat.set(3, 1);
+      c.needsUpdate = true;
+      return c;
+    };
+    m.map = t(set.map);
+    m.normalMap = t(set.normalMap);
+    m.roughnessMap = t(set.arm);
+    m.aoMap = t(set.arm);
+    m.color.set(tint);
+    m.roughness = 1;
+    m.needsUpdate = true;
+    wetLine(m, 0.12);
+  }
+}
 const W = (x: number, y: number, h = 0) => new THREE.Vector3(x, h, -y);
 
 function lumpy(r: number, squash: number, detail = 2) {
@@ -88,7 +116,23 @@ function branch(o: Extract<Obstacle, { shape: "capsule" }>) {
   return g;
 }
 
-function pot(o: Extract<Obstacle, { shape: "circle" }>) {
+/** The scanned clay pot (Poly Haven planter_pot_clay), rim-width matched to the collider. */
+function scannedPot(model: THREE.Object3D, r: number) {
+  const pot = model.clone(true);
+  const box = new THREE.Box3().setFromObject(pot);
+  const size = box.getSize(new THREE.Vector3());
+  const k = (2 * r) / Math.max(size.x, size.z);
+  pot.scale.setScalar(k);
+  // Sunk so the rim stands about 0.7 above the water, as the flooded pot always did.
+  pot.position.y = 0.72 - box.max.y * k;
+  pot.traverse((c) => {
+    const m = c as THREE.Mesh;
+    if (m.isMesh) m.material = wetLine((m.material as THREE.MeshStandardMaterial).clone(), 0.1);
+  });
+  return pot;
+}
+
+function pot(o: Extract<Obstacle, { shape: "circle" }>, assets: Assets) {
   const r = o.r;
   const profile = [
     new THREE.Vector2(r * 0.62, -1.4),
@@ -100,7 +144,9 @@ function pot(o: Extract<Obstacle, { shape: "circle" }>) {
     new THREE.Vector2(r * 0.6, -1.2),
   ];
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.LatheGeometry(profile, 40), terracotta);
+  const body = assets.pot
+    ? scannedPot(assets.pot, r)
+    : new THREE.Mesh(new THREE.LatheGeometry(profile, 40), terracotta);
   const surface = new THREE.Mesh(new THREE.CircleGeometry(r * 0.87, 32), potWater);
   surface.rotation.x = -Math.PI / 2;
   surface.position.y = 0.28;
@@ -125,8 +171,13 @@ function pot(o: Extract<Obstacle, { shape: "circle" }>) {
   return g;
 }
 
-function rock(o: Extract<Obstacle, { shape: "circle" }>) {
+function rock(o: Extract<Obstacle, { shape: "circle" }>, assets: Assets, seed: number) {
   const g = new THREE.Group();
+  if (assets.rocks) {
+    g.add(scannedRock(assets.rocks, o.r, seed));
+    g.position.copy(W(o.c.x, o.c.y));
+    return g;
+  }
   const body = new THREE.Mesh(lumpy(o.r * 1.05, 0.75, 1), stone);
   const cap = new THREE.Mesh(lumpy(o.r * 0.75, 0.35, 1), moss);
   cap.position.set(-o.r * 0.1, o.r * 0.5, 0);
@@ -200,7 +251,9 @@ function rootArch(course: Course) {
   return g;
 }
 
-export function createObstacles(course: Course) {
+export function createObstacles(course: Course, assets: Assets) {
+  applyBark(assets);
+  let seed = 40;
   const group = new THREE.Group();
   for (const o of course.obstacles) {
     if (o.shape === "capsule") {
@@ -209,9 +262,9 @@ export function createObstacles(course: Course) {
         const mid = W((o.a.x + o.b.x) / 2 + 0.05, (o.a.y + o.b.y) / 2, 0.2);
         group.add(tube([W(o.a.x, o.a.y, 0.1), mid, W(o.b.x, o.b.y, 0.1)], o.r * 1.05, root, false));
       }
-    } else if (o.kind === "pot") group.add(pot(o));
+    } else if (o.kind === "pot") group.add(pot(o, assets));
     else if (o.kind === "lily") group.add(lily(o));
-    else if (o.kind === "rock" || o.kind === "pebble") group.add(rock(o));
+    else if (o.kind === "rock" || o.kind === "pebble") group.add(rock(o, assets, seed++));
   }
   group.add(rootArch(course));
   return shadowed(group);

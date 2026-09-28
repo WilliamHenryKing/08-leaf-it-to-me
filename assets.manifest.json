@@ -198,6 +198,76 @@
       "retrieved": "2026-09-28",
       "processing": "1k JPG re-encoded to WebP (q90, linear data) with Pillow.",
       "usedFor": "Branch, roots and knuckle bark"
+    },
+    {
+      "file": "public/models/rock_moss_set_01.glb",
+      "bytes": 532044,
+      "sha256": "3eca5ec851659e3196f02212d8367263786c99f1141bdead0a275bd450fbd190",
+      "title": "Rock Moss Set 01",
+      "kind": "model",
+      "source": "https://polyhaven.com/a/rock_moss_set_01",
+      "download": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/rock_moss_set_01/rock_moss_set_01_1k.gltf",
+      "author": "Kless Gyzen (Poly Haven)",
+      "licence": "CC0-1.0",
+      "retrieved": "2026-09-28",
+      "processing": "gltf-transform 4.5 optimize: meshopt compression, textures to 512 px WebP. Split into separate rocks at load time.",
+      "usedFor": "Obstacle rocks in the water (full resolution)"
+    },
+    {
+      "file": "public/models/rock_moss_set_01_lod.glb",
+      "bytes": 123252,
+      "sha256": "c8793ca27bcd6c2a9e6a93bbc7fee1f8a2facbef6e6bedccfae71c8a8079abe6",
+      "title": "Rock Moss Set 01 (LOD)",
+      "kind": "model",
+      "source": "https://polyhaven.com/a/rock_moss_set_01",
+      "download": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/rock_moss_set_01/rock_moss_set_01_1k.gltf",
+      "author": "Kless Gyzen (Poly Haven)",
+      "licence": "CC0-1.0",
+      "retrieved": "2026-09-28",
+      "processing": "gltf-transform 4.5 optimize: meshopt simplify to ~8 % of triangles (error 0.01), meshopt compression, textures to 512 px WebP.",
+      "usedFor": "Instanced bank boulders"
+    },
+    {
+      "file": "public/models/rock_moss_set_02_lod.glb",
+      "bytes": 50880,
+      "sha256": "7e76d0645d748baa6e696f5b2729017b7599f8685acb158768f329ec815214ed",
+      "title": "Rock Moss Set 02 (LOD)",
+      "kind": "model",
+      "source": "https://polyhaven.com/a/rock_moss_set_02",
+      "download": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/rock_moss_set_02/rock_moss_set_02_1k.gltf",
+      "author": "Kless Gyzen (Poly Haven)",
+      "licence": "CC0-1.0",
+      "retrieved": "2026-09-28",
+      "processing": "gltf-transform 4.5 optimize: meshopt simplify to ~3.5 % of triangles (error 0.02), meshopt compression, textures to 256 px WebP.",
+      "usedFor": "Instanced pebbles on the bed and waterline"
+    },
+    {
+      "file": "public/models/planter_pot_clay.glb",
+      "bytes": 78268,
+      "sha256": "bd66b7280a197c45857bd2de4a7cbdfdea6f8f27ff76b0cdd6672e7373e63aca",
+      "title": "Planter Pot Clay",
+      "kind": "model",
+      "source": "https://polyhaven.com/a/planter_pot_clay",
+      "download": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/planter_pot_clay/planter_pot_clay_1k.gltf",
+      "author": "Amal Kumar (Poly Haven)",
+      "licence": "CC0-1.0",
+      "retrieved": "2026-09-28",
+      "processing": "gltf-transform 4.5 optimize: meshopt compression, textures to 512 px WebP.",
+      "usedFor": "The flooded flowerpot"
+    },
+    {
+      "file": "public/models/tree_stump_01.glb",
+      "bytes": 461924,
+      "sha256": "6d2953cfbb1b8e242830641088066c5343c8197a8908b6c118ca96d44a185042",
+      "title": "Tree Stump 01",
+      "kind": "model",
+      "source": "https://polyhaven.com/a/tree_stump_01",
+      "download": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/tree_stump_01/tree_stump_01_1k.gltf",
+      "author": "Rob Tuytel (Poly Haven)",
+      "licence": "CC0-1.0",
+      "retrieved": "2026-09-28",
+      "processing": "gltf-transform 4.5 optimize: meshopt compression, textures to 512 px WebP.",
+      "usedFor": "Bank dressing"
     }
   ]
 }

@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { Course } from "../game/course";
 import { centreX, halfWidth } from "../game/course";
+import type { Assets } from "./assets";
 import { bankHeight, outside } from "./banks";
 
 export function rng(seed: number) {
@@ -59,7 +60,7 @@ function cloverGeometry() {
   return merged;
 }
 
-export function createBankside(course: Course) {
+export function createBankside(course: Course, assets: Assets) {
   const group = new THREE.Group();
   const rand = rng(8);
   const m = new THREE.Matrix4();
@@ -95,44 +96,46 @@ export function createBankside(course: Course) {
   blades.receiveShadow = true;
   group.add(blades);
 
-  // Pebbles along the waterline, boulders at this scale.
-  const pebbleGeo = new THREE.IcosahedronGeometry(1, 2);
-  const pp = pebbleGeo.attributes.position as THREE.BufferAttribute;
-  for (let i = 0; i < pp.count; i++) {
-    // Smooth, position-based lumps keep neighbouring vertices together: river-worn, not crumpled.
-    const x = pp.getX(i);
-    const y = pp.getY(i);
-    const z = pp.getZ(i);
-    const f = 1 + 0.1 * Math.sin(x * 2.1 + z * 1.3) + 0.06 * Math.sin(y * 3.1 - x * 1.7);
-    pp.setXYZ(i, x * f, y * f * 0.62, z * f);
+  // Procedural pebbles, only if the scanned stones (stones.ts) failed to load.
+  if (!assets.pebbles) {
+    const pebbleGeo = new THREE.IcosahedronGeometry(1, 2);
+    const pp = pebbleGeo.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < pp.count; i++) {
+      // Smooth, position-based lumps keep neighbouring vertices together: river-worn, not crumpled.
+      const x = pp.getX(i);
+      const y = pp.getY(i);
+      const z = pp.getZ(i);
+      const f = 1 + 0.1 * Math.sin(x * 2.1 + z * 1.3) + 0.06 * Math.sin(y * 3.1 - x * 1.7);
+      pp.setXYZ(i, x * f, y * f * 0.62, z * f);
+    }
+    pebbleGeo.computeVertexNormals();
+    const pebbles = new THREE.InstancedMesh(
+      pebbleGeo,
+      new THREE.MeshStandardMaterial({ roughness: 0.5 }),
+      560,
+    );
+    n = 0;
+    while (n < pebbles.count) {
+      const y = -6 + rand() * 110;
+      const side = rand() < 0.5 ? -1 : 1;
+      // Every other pebble lies on the bed, seen through the clear shallows.
+      const under = n % 2 === 0;
+      const off = under ? -(0.35 + rand() ** 1.5 * 2.4) : -0.15 + rand() * 2.2;
+      const x = centreX(y) + side * (halfWidth(y) + off);
+      const r = under ? 0.12 + rand() ** 2 * 0.3 : 0.18 + rand() ** 2 * 0.6;
+      p.set(x, bankHeight(x, y) + r * 0.2, -y);
+      e.set(rand() * 0.5, rand() * 6, rand() * 0.5);
+      q.setFromEuler(e);
+      s.setScalar(r);
+      pebbles.setMatrixAt(n, m.compose(p, q, s));
+      col.setHSL(0.07 + rand() * 0.06, 0.1 + rand() * 0.14, (under ? 0.26 : 0.2) + rand() * 0.18);
+      pebbles.setColorAt(n, col);
+      n++;
+    }
+    pebbles.castShadow = true;
+    pebbles.receiveShadow = true;
+    group.add(pebbles);
   }
-  pebbleGeo.computeVertexNormals();
-  const pebbles = new THREE.InstancedMesh(
-    pebbleGeo,
-    new THREE.MeshStandardMaterial({ roughness: 0.5 }),
-    560,
-  );
-  n = 0;
-  while (n < pebbles.count) {
-    const y = -6 + rand() * 110;
-    const side = rand() < 0.5 ? -1 : 1;
-    // Every other pebble lies on the bed, seen through the clear shallows.
-    const under = n % 2 === 0;
-    const off = under ? -(0.35 + rand() ** 1.5 * 2.4) : -0.15 + rand() * 2.2;
-    const x = centreX(y) + side * (halfWidth(y) + off);
-    const r = under ? 0.12 + rand() ** 2 * 0.3 : 0.18 + rand() ** 2 * 0.6;
-    p.set(x, bankHeight(x, y) + r * 0.2, -y);
-    e.set(rand() * 0.5, rand() * 6, rand() * 0.5);
-    q.setFromEuler(e);
-    s.setScalar(r);
-    pebbles.setMatrixAt(n, m.compose(p, q, s));
-    col.setHSL(0.07 + rand() * 0.06, 0.1 + rand() * 0.14, (under ? 0.26 : 0.2) + rand() * 0.18);
-    pebbles.setColorAt(n, col);
-    n++;
-  }
-  pebbles.castShadow = true;
-  pebbles.receiveShadow = true;
-  group.add(pebbles);
 
   const leafMat = new THREE.MeshStandardMaterial({
     color: "#4f7a2a",

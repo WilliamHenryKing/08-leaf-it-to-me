@@ -22,7 +22,10 @@ export interface Assets {
   mud: PbrSet | null;
   leaves: PbrSet | null;
   bark: PbrSet | null;
+  /** Full-resolution scans for the few rocks in the water. */
   rocks: RockSet | null;
+  /** Simplified scans (about a tenth of the triangles) for bank boulders. */
+  boulders: RockSet | null;
   pebbles: RockSet | null;
   pot: THREE.Object3D | null;
   stump: THREE.Object3D | null;
@@ -31,7 +34,22 @@ export interface Assets {
 const base = `${import.meta.env.BASE_URL}`;
 
 /** Split a merged scan into its separate rocks (connected components of the index buffer). */
-export function splitPieces(geo: THREE.BufferGeometry): THREE.BufferGeometry[] {
+/** Quantized glTF attributes (int16/int8, normalized) become plain floats before any editing. */
+function dequantize(src: THREE.BufferGeometry) {
+  const geo = new THREE.BufferGeometry();
+  for (const [name, attr] of Object.entries(src.attributes)) {
+    const a = attr as THREE.BufferAttribute;
+    const out = new Float32Array(a.count * a.itemSize);
+    for (let i = 0; i < a.count; i++)
+      for (let c = 0; c < a.itemSize; c++) out[i * a.itemSize + c] = a.getComponent(i, c);
+    geo.setAttribute(name, new THREE.BufferAttribute(out, a.itemSize));
+  }
+  if (src.index) geo.setIndex(Array.from(src.index.array as ArrayLike<number>));
+  return geo;
+}
+
+export function splitPieces(source: THREE.BufferGeometry): THREE.BufferGeometry[] {
+  const geo = dequantize(source);
   const index = geo.index;
   const pos = geo.getAttribute("position");
   if (!index || !pos) return [geo];
@@ -82,7 +100,7 @@ export function splitPieces(geo: THREE.BufferGeometry): THREE.BufferGeometry[] {
     const size = box.getSize(new THREE.Vector3());
     const r = Math.max(size.x, size.z) / 2 || 1;
     compact.scale(1 / r, 1 / r, 1 / r);
-    compact.computeVertexNormals();
+    // Scanned normals are kept (smooth); only the bounds are recomputed.
     compact.computeBoundingSphere();
     pieces.push(compact);
   }
@@ -134,16 +152,18 @@ function rockSet(root: THREE.Object3D | null): RockSet | null {
   if (!mesh) return null;
   const material = (mesh.material as THREE.MeshStandardMaterial).clone();
   material.side = THREE.FrontSide;
-  return { pieces: splitPieces(mesh.geometry), material };
+  const pieces = splitPieces(mesh.geometry);
+  return { pieces, material };
 }
 
 export async function loadAssets(): Promise<Assets> {
-  const [bed, mud, leaves, bark, rocks, pebbles, pot, stump] = await Promise.all([
+  const [bed, mud, leaves, bark, rocks, boulders, pebbles, pot, stump] = await Promise.all([
     loadSet("clean_pebbles"),
     loadSet("mud_forest"),
     loadSet("brown_mud_leaves_01"),
     loadSet("bark_brown_02"),
     loadModel("rock_moss_set_01.glb"),
+    loadModel("rock_moss_set_01_lod.glb"),
     loadModel("rock_moss_set_02_lod.glb"),
     loadModel("planter_pot_clay.glb"),
     loadModel("tree_stump_01.glb"),
@@ -154,6 +174,7 @@ export async function loadAssets(): Promise<Assets> {
     leaves,
     bark,
     rocks: rockSet(rocks),
+    boulders: rockSet(boulders),
     pebbles: rockSet(pebbles),
     pot,
     stump,
