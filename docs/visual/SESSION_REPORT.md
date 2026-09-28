@@ -41,6 +41,7 @@ All CC0. Nothing was copied from ODD TIDE's `public/` (its textures and models a
 - **Vegetation and props:** instanced reeds with height, lean and tint jitter; folded, translucent grass blades; lathed toadstools with flecked caps and gills; textured lily pads; scanned clay pot; bark on branch, roots and a log raft; scanned stumps.
 - **Places:** roots and earth between the camera and the boat dissolve (ordered dither); soft additive light shafts; a pool of three real point lights follows the nearest floating lanterns (no emissive rescue, halo sprites removed).
 - **Loading:** assets load behind the arrival veil; the dusk HDRI loads after the day one.
+- **Final check:** `bun run check` passes at the stop point (strict tsc, Biome, 23 tests, build).
 
 `bun run check` passes (strict tsc, Biome, 23 unit tests, build) and the Playwright end-to-end test passes (now about 3 minutes under SwiftShader, run on the low tier).
 
@@ -52,8 +53,17 @@ All CC0. Nothing was copied from ODD TIDE's `public/` (its textures and models a
 - **No transmission water.** Refraction is approximated by blending over the textured bed, not a transmission pass (also cheaper, per the RTX 2060 lesson).
 - **Hero character and grass are still procedural** and hold the scores at about 3: there's no CC0 beetle, and the grass is geometry blades rather than alpha-tested scanned cards (Poly Haven's `grass_medium_02` would be the next source).
 - **Remaining flaws** are listed per bookmark in `AUDIT.md`.
+- **The README gameplay GIF was not refreshed** (see below).
 
 ## Access
 
 - Cloning `WilliamHenryKing/01-odd-tide` worked after attaching it read-only to this session.
 - Poly Haven's API refuses Python's default user agent (HTTP 403); requests with an explicit user agent worked.
+
+## Where this session stopped
+
+Stopped on request (cloud credit exhausted) during the last step of the pass.
+
+- **Done and pushed:** everything above, the after captures and scorecard, and refreshed `docs/readme/desktop.png` and `phone.png`.
+- **Not done: `docs/readme/preview.gif` still shows the pre-fidelity look.** The frame capture was stopped part-way. To redo it locally: `bun run build && bun run preview`, capture frames with the `?capture` clock (`window.leafItToMe.advance/pending`, 0.2 s of game time per frame, a left crosswind at the branch, until reach 1 is cleared), encode 800 px wide with gifenc (about 30 frames, 64 colours, disposal 1 with unchanged pixels transparent, under 4 MB), and check a middle and the last frame decode as complete pictures.
+- **Next fixes by impact** (see `AUDIT.md`): measure frame rate and the adaptive quality step on a real GPU; defer the texture sets past the arrival veil; alpha-tested scanned grass cards; a better beetle; a softer tunnel dither and dusty light beams.
