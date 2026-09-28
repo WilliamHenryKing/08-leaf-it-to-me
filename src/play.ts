@@ -16,6 +16,7 @@ import {
   takeEvents,
 } from "./game/sim";
 import { worldReady } from "./loader";
+import type { Assets } from "./scene/assets";
 import { attachInput } from "./scene/input";
 import { type Aim, createWorld } from "./scene/world";
 import { readBest, readHintSeen, writeBest, writeHintSeen } from "./ui/storage";
@@ -25,13 +26,13 @@ import { wireVisualTest } from "./visual/wire";
 /** Time runs slowly while a gust is being aimed, so choices can be deliberate. */
 const AIM_TIME_SCALE = 0.3;
 
-export function createPlay(canvas: HTMLCanvasElement) {
+export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const course = createCourse();
   let state = createState(course);
   let aim: Aim | null = null;
   let toastId = 0;
-  const world = createWorld(canvas, course, reducedMotion);
+  const world = createWorld(canvas, course, reducedMotion, assets);
   const audio = createAudio();
   // Any first gesture starts the sound; M toggles mute everywhere.
   const unlock = () => void audio.unlock();

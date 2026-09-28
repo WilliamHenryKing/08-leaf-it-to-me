@@ -3,12 +3,14 @@ import gsap from "gsap";
 import * as THREE from "three";
 import type { Course } from "../game/course";
 import { type GameEvent, type GameState, predict, SPILL_AT } from "../game/sim";
+import type { Assets } from "./assets";
 import { createBanks } from "./banks";
 import { createBankside } from "./bankside";
 import { createBoat } from "./boat";
 import { createDuck } from "./duck";
 import { createFlowFx } from "./flowfx";
 import { createFx } from "./fx";
+import { createGroundMaterial } from "./ground";
 import { createCarriedLantern, createLanterns } from "./lanterns";
 import { createMoodLight, moodAt } from "./mood";
 import { createObstacles } from "./obstacles";
@@ -29,7 +31,12 @@ export interface View {
   fov?: number;
 }
 
-export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMotion: boolean) {
+export function createWorld(
+  canvas: HTMLCanvasElement,
+  course: Course,
+  reducedMotion: boolean,
+  assets: Assets,
+) {
   const stage = createStage(canvas);
   const { scene, camera } = stage;
   const water = createWater(course);
@@ -40,7 +47,9 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
   const duck = createDuck();
   const fx = createFx();
   const flow = createFlowFx(course);
-  scene.add(water.mesh, createBanks(), createBankside(course), createObstacles(course));
+  const groundUniforms = { uTime: { value: 0 }, uSun: { value: new THREE.Color() } };
+  const ground = createGroundMaterial(assets, groundUniforms);
+  scene.add(water.mesh, createBanks(ground), createBankside(course), createObstacles(course));
   const places = createPlaces(course);
   const mood = createMoodLight(stage);
   // Transparent surfaces and effects stay out of the ambient-occlusion depth pass.
@@ -216,6 +225,8 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
       mood.update(here, dt, first);
       water.update(reducedMotion ? clock * 0.5 : clock, mood.current.gloom, mood.current.warmth);
       places.update(clock, mood.current, reducedMotion);
+      groundUniforms.uTime.value = reducedMotion ? 0 : clock;
+      groundUniforms.uSun.value.copy(stage.sun.color).multiplyScalar(stage.sun.intensity);
       placeCamera(state, dt);
       preview(state, aim);
       billow *= Math.exp(-dt * 2.5);

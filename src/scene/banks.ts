@@ -30,11 +30,13 @@ export function bankHeight(x: number, y: number) {
   return h;
 }
 
-export function createBanks() {
+/** The carved earth; with sourced textures it uses the ground splat, else vertex colours. */
+export function createBanks(ground: THREE.Material | null = null) {
   const geo = new THREE.PlaneGeometry(X * 2, Y1 - Y0, 110, 330);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position as THREE.BufferAttribute;
   const colors = new Float32Array(pos.count * 3);
+  const edge = new Float32Array(pos.count);
   const bed = new THREE.Color("#2a2418");
   const gravel = new THREE.Color("#9a8158");
   const mud = new THREE.Color("#3b2c1c");
@@ -49,6 +51,7 @@ export function createBanks() {
     const h = bankHeight(x, gy);
     pos.setY(i, h);
     const d = outside(x, gy);
+    edge[i] = d;
     const n = groundNoise(x * 1.7, gy * 1.3);
     // The bed: sandy gravel in the clear shallows, dark silt in the channel.
     c.copy(bed).lerp(gravel, smoothstep(-2.4, -0.6, d) * (0.75 + n * 0.25));
@@ -59,10 +62,11 @@ export function createBanks() {
     colors.set([c.r, c.g, c.b], i * 3);
   }
   geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  geo.setAttribute("aEdge", new THREE.BufferAttribute(edge, 1));
   geo.computeVertexNormals();
   const mesh = new THREE.Mesh(
     geo,
-    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }),
+    ground ?? new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }),
   );
   mesh.position.z = midZ;
   mesh.receiveShadow = true;

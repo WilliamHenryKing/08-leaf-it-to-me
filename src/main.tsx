@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { worldReady } from "./loader";
 import { createPlay } from "./play";
+import { loadAssets } from "./scene/assets";
 import { App } from "./ui/App";
 
 const canvas = document.createElement("canvas");
@@ -15,10 +16,15 @@ canvas.setAttribute(
 document.body.prepend(canvas);
 
 const root = document.getElementById("root");
-try {
-  const play = createPlay(canvas);
-  if (root) createRoot(root).render(<App play={play} />);
-} catch (err) {
+// Sourced textures and scans load behind the arrival veil; any that fail fall back to procedural.
+loadAssets()
+  .then((assets) => {
+    const play = createPlay(canvas, assets);
+    if (root) createRoot(root).render(<App play={play} />);
+  })
+  .catch(fail);
+
+function fail(err: unknown) {
   // No WebGL: say so plainly rather than leave a blank page.
   console.error(err);
   if (root) {

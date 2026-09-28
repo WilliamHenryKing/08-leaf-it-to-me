@@ -14,6 +14,7 @@ const browser = await chromium.launch({
 });
 const report = { capturedAt: new Date().toISOString(), base, shots: [] };
 const probe = await browser.newPage();
+probe.setDefaultTimeout(300_000);
 await probe.goto(`${base}?e2e`);
 await probe.waitForFunction(() => window.__VISUAL_TEST__);
 const bookmarks = await probe.evaluate(() => window.__VISUAL_TEST__.bookmarks);
@@ -30,6 +31,8 @@ for (const b of bookmarks.filter((x) => !only || only.includes(x.id))) {
     hasTouch: phone,
   });
   const page = await ctx.newPage();
+  // Software rendering compiles and draws slowly: be patient.
+  page.setDefaultTimeout(300_000);
   await page.addInitScript(() => localStorage.setItem("leaf-it-to-me:hint-seen", "1"));
   await page.goto(`${base}?e2e`);
   await page.waitForFunction(() => window.__VISUAL_TEST__);

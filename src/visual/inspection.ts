@@ -57,7 +57,24 @@ function inspect(renderer: WebGLRenderer, scene: Scene) {
     triangles += ((g.index?.count ?? g.getAttribute("position")?.count ?? 0) / 3) * n;
     for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m.type);
   });
+  let groundEdge: number[] | null = null;
+  scene.traverse((o) => {
+    const m = o as Mesh;
+    if (m.isMesh && (m.material as { name?: string }).name === "ground") {
+      const a = m.geometry.getAttribute("aEdge");
+      if (a) {
+        let lo = Infinity;
+        let hi = -Infinity;
+        for (let i = 0; i < a.count; i++) {
+          lo = Math.min(lo, a.getX(i));
+          hi = Math.max(hi, a.getX(i));
+        }
+        groundEdge = [lo, hi];
+      }
+    }
+  });
   return {
+    groundEdge,
     gpu,
     softwareRenderer: /swiftshader|llvmpipe|software/i.test(gpu),
     three: REVISION,
