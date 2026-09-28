@@ -78,12 +78,13 @@ export function createLanterns(course: Course) {
   raft.receiveShadow = true;
   raft.castShadow = true;
   gathering.add(raft);
-  const coats = ["#8a3a3a", "#3a5a8a", "#6a8a3a", "#8a6a9a", "#b0782a"];
+  // Guests crowd the raft's edge, facing the water, waiting for the beetle.
+  const coats = ["#8a3a3a", "#3a5a8a", "#6a8a3a", "#8a6a9a", "#b0782a", "#3a7a7a", "#9a4a6a"];
   const guests = coats.map((c, i) => {
     const b = createBeetle(c);
-    const a = (i / coats.length) * Math.PI * 2;
-    b.position.set(Math.cos(a) * 0.7, 0.19, Math.sin(a) * 0.9);
-    b.rotation.y = -a + Math.PI / 2 + Math.PI;
+    const row = i % 2;
+    b.position.set(-0.85 + row * 0.45, 0.19, -1.15 + i * 0.38);
+    b.rotation.y = Math.PI / 2 + (i % 3) * 0.15 - 0.15;
     b.scale.setScalar(1.3);
     gathering.add(b);
     return b;

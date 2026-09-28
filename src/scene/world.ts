@@ -10,7 +10,9 @@ import { createDuck } from "./duck";
 import { createFlowFx } from "./flowfx";
 import { createFx } from "./fx";
 import { createCarriedLantern, createLanterns } from "./lanterns";
+import { createMoodLight, moodAt } from "./mood";
 import { createObstacles } from "./obstacles";
+import { createPlaces } from "./places";
 import { createStage, toWorld } from "./stage";
 import { createWater } from "./water";
 
@@ -31,7 +33,9 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
   const fx = createFx();
   const flow = createFlowFx(course);
   scene.add(water.mesh, createBanks(), createBankside(course), createObstacles(course));
-  scene.add(lanterns.group, boat.group, duck.group, fx.group, flow.group);
+  const places = createPlaces(course);
+  const mood = createMoodLight(stage);
+  scene.add(lanterns.group, boat.group, duck.group, fx.group, flow.group, places.group);
 
   const focus = new THREE.Vector3(course.start.x, 0, -course.start.y);
   const camPos = new THREE.Vector3();
@@ -235,8 +239,11 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
     },
     frame(state: GameState, aim: Aim | null, dt: number, flowing: boolean) {
       clock += dt;
-      water.update(reducedMotion ? clock * 0.5 : clock);
       placeBoat(state);
+      const here = state.status === "finished" ? { gloom: 0, warmth: 1 } : moodAt(state.x, state.y);
+      mood.update(here, dt, first);
+      water.update(reducedMotion ? clock * 0.5 : clock, mood.current.gloom, mood.current.warmth);
+      places.update(clock, mood.current, reducedMotion);
       placeCamera(state, dt);
       preview(state, aim);
       billow *= Math.exp(-dt * 2.5);

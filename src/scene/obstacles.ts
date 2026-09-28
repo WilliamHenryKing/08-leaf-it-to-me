@@ -179,7 +179,7 @@ function rootArch(course: Course) {
       W(c - 1.2, y, h - 0.4),
       W(c - 0.9 + (y < 47 ? 1.2 : 0), y < 47 ? k.y : y, 0.3),
     ];
-    g.add(tube(pts, 0.34, root, false));
+    g.add(tube(pts, 0.27, root, false));
     // Rootlets hang from the arch but stay clear of the water.
     for (let i = 0; i < 4; i++) {
       const x = c - 4 + i * 0.9 + rand() * 0.3;

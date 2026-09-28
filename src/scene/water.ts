@@ -13,6 +13,8 @@ export function createWater(course: Course) {
     uTime: { value: 0 },
     /** 0 = open daylight, 1 = deep in the root tunnel's shade. */
     uGloom: { value: 0 },
+    /** 0 = daylight, 1 = the pond at dusk. */
+    uWarm: { value: 0 },
   };
 
   const material = new THREE.MeshStandardMaterial({
@@ -37,7 +39,8 @@ varying vec2 vGame;
 uniform sampler2D uFlow;
 uniform sampler2D uNoise;
 uniform float uTime;
-uniform float uGloom;`,
+uniform float uGloom;
+uniform float uWarm;`,
       )
       .replace(
         "#include <color_fragment>",
@@ -86,6 +89,8 @@ water = mix(water, vec3(0.86, 0.88, 0.8), foam);
 float glint = smoothstep(0.8, 0.93, nB * 0.6 + nA * 0.4) * (0.25 + fast * 0.5) * (1.0 - uGloom * 0.8);
 water += vec3(1.0, 0.86, 0.6) * glint * 0.35;
 water *= 1.0 - uGloom * 0.35;
+// Dusk sky and lantern light on the open pond.
+water += vec3(0.05, 0.035, 0.015) * uWarm * (0.6 + 0.4 * nA);
 diffuseColor.rgb = water;
 // Clear in the shallows (the bed shows through), opaque in the channels.
 diffuseColor.a = mix(0.42, 0.95, smoothstep(0.05, 0.6, depth)) + foam * 0.5;`,
@@ -116,9 +121,10 @@ normal = normalize(normal + (viewMatrix * vec4(-hx * bump, 0.0, hz * bump, 0.0))
 
   return {
     mesh,
-    update(time: number, gloom = 0) {
+    update(time: number, gloom = 0, warmth = 0) {
       uniforms.uTime.value = time;
       uniforms.uGloom.value = gloom;
+      uniforms.uWarm.value = warmth;
     },
   };
 }

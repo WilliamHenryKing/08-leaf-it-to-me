@@ -1,7 +1,7 @@
 // Wiring: the game loop joins the pure rules, the three.js world, input, sound and the HUD store.
 import { createAudio } from "./audio/audio";
 import { playCues } from "./audio/cues";
-import { createCourse } from "./game/course";
+import { centreX, createCourse, reachAt } from "./game/course";
 import { windAt } from "./game/field";
 import { mergeBest, PAR, parseBest, type Stars, starsFor } from "./game/score";
 import {
@@ -217,6 +217,18 @@ export function createPlay(canvas: HTMLCanvasElement) {
   };
   requestAnimationFrame(loop);
 
+  // A read-only window onto the run, for the end-to-end test.
+  (window as unknown as { leafItToMe: unknown }).leafItToMe = {
+    snapshot: () => ({
+      status: state.status,
+      reach: state.reach,
+      x: state.x,
+      y: state.y,
+      gusts: state.gusts,
+      rescues: state.rescues,
+    }),
+  };
+
   return {
     store,
     toggleMute,
@@ -224,6 +236,14 @@ export function createPlay(canvas: HTMLCanvasElement) {
       void audio.unlock();
       audio.play("click", 0.5);
       startSailing(state);
+      // Development only: ?at=<distance downstream> starts further down the brook.
+      const at = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get("at")) : 0;
+      if (at > 0) {
+        state.y = at;
+        state.x = centreX(at);
+        state.reach = reachAt(course, at);
+        world.reset(state);
+      }
       store.set({ hint: !readHintSeen() });
       toast(`Reach 1 · ${course.reaches[0]?.name}`);
       sync();

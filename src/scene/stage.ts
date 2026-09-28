@@ -16,6 +16,7 @@ export interface Stage {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   sun: THREE.DirectionalLight;
+  hemi: THREE.HemisphereLight;
   resize: () => void;
   /** Keep the shadow frustum centred on what the camera sees. */
   follow: (target: THREE.Vector3) => void;
@@ -75,5 +76,5 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     sun.position.set(target.x - 9, 14, target.z + 7);
   };
 
-  return { renderer, scene, camera, sun, resize, follow, portrait };
+  return { renderer, scene, camera, sun, hemi, resize, follow, portrait };
 }
