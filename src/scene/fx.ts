@@ -136,11 +136,11 @@ export function createFx() {
       {
         crown.userData.age += dt;
         const a = crown.userData.age as number;
-        (crown.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.7 * (1 - a / 0.55));
+        (crown.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.42 * (1 - a / 0.55));
         crown.scale.set(
-          1 + a * 3,
-          0.4 + Math.sin(Math.min(1, a / 0.55) * Math.PI) * 1.6,
-          1 + a * 3,
+          1 + a * 3.4,
+          0.2 + Math.sin(Math.min(1, a / 0.55) * Math.PI) * 1.1,
+          1 + a * 3.4,
         );
       }
 

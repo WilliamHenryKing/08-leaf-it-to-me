@@ -99,8 +99,12 @@ export function createBankside(course: Course) {
   const pebbleGeo = new THREE.IcosahedronGeometry(1, 2);
   const pp = pebbleGeo.attributes.position as THREE.BufferAttribute;
   for (let i = 0; i < pp.count; i++) {
-    const f = 1 + (Math.sin(i * 12.9898) * 0.5 - 0.25) * 0.25;
-    pp.setXYZ(i, pp.getX(i) * f, pp.getY(i) * f * 0.7, pp.getZ(i) * f);
+    // Smooth, position-based lumps keep neighbouring vertices together: river-worn, not crumpled.
+    const x = pp.getX(i);
+    const y = pp.getY(i);
+    const z = pp.getZ(i);
+    const f = 1 + 0.1 * Math.sin(x * 2.1 + z * 1.3) + 0.06 * Math.sin(y * 3.1 - x * 1.7);
+    pp.setXYZ(i, x * f, y * f * 0.62, z * f);
   }
   pebbleGeo.computeVertexNormals();
   const pebbles = new THREE.InstancedMesh(
