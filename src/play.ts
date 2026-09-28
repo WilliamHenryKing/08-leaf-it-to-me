@@ -3,7 +3,7 @@ import { createAudio } from "./audio/audio";
 import { playCues } from "./audio/cues";
 import { centreX, createCourse, reachAt } from "./game/course";
 import { windAt } from "./game/field";
-import { mergeBest, PAR, parseBest, type Stars, starsFor } from "./game/score";
+import { mergeBest, PAR, type Stars, starsFor } from "./game/score";
 import {
   applyGust,
   createState,
@@ -18,42 +18,12 @@ import {
 import { worldReady } from "./loader";
 import { attachInput } from "./scene/input";
 import { type Aim, createWorld } from "./scene/world";
+import { readBest, readHintSeen, writeBest, writeHintSeen } from "./ui/storage";
 import { createStore } from "./ui/store";
+import { wireVisualTest } from "./visual/wire";
 
-const HINT_KEY = "leaf-it-to-me:hint-seen";
-const BEST_KEY = "leaf-it-to-me:best-stars";
-
-function readBest(reaches: number) {
-  try {
-    return parseBest(window.localStorage.getItem(BEST_KEY), reaches);
-  } catch {
-    return parseBest(null, reaches);
-  }
-}
-function writeBest(best: Stars[]) {
-  try {
-    window.localStorage.setItem(BEST_KEY, JSON.stringify(best));
-  } catch {
-    // Private mode: the record lasts for this visit only.
-  }
-}
 /** Time runs slowly while a gust is being aimed, so choices can be deliberate. */
 const AIM_TIME_SCALE = 0.3;
-
-function readHintSeen() {
-  try {
-    return window.localStorage.getItem(HINT_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-function writeHintSeen() {
-  try {
-    window.localStorage.setItem(HINT_KEY, "1");
-  } catch {
-    // Private mode: the hint simply shows again next time.
-  }
-}
 
 export function createPlay(canvas: HTMLCanvasElement) {
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -200,13 +170,14 @@ export function createPlay(canvas: HTMLCanvasElement) {
   let firstFrame = true;
   const manualClock = new URLSearchParams(location.search).has("capture");
   let queued = 0;
+  let frozen = false;
   const loop = (now: number) => {
     // Capped so a stall is not a leap; the rules still integrate in fixed 1/60 s steps.
     const real = Math.min(0.1, (now - last) / 1000);
     // Under ?capture the clock only moves when the capture script asks, one 1/30 s tick per frame.
     const tick = Math.min(queued, 1 / 30);
     queued -= tick;
-    const dt = manualClock ? tick : real;
+    const dt = frozen ? 0 : manualClock ? tick : real;
     last = now;
     const scale = aim ? AIM_TIME_SCALE : 1;
     if (!document.hidden) step(course, state, dt * scale);
@@ -223,6 +194,23 @@ export function createPlay(canvas: HTMLCanvasElement) {
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
+
+  wireVisualTest({
+    course,
+    world,
+    getState: () => state,
+    setState: (s) => {
+      state = s;
+    },
+    getAim: () => aim,
+    setAim: (a) => {
+      aim = a;
+    },
+    setFrozen: (f) => {
+      frozen = f;
+    },
+    quiet: () => store.set({ hint: false, toast: null, status: "sailing" }),
+  });
 
   // A read-only window onto the run, for the end-to-end test.
   (window as unknown as { leafItToMe: unknown }).leafItToMe = {

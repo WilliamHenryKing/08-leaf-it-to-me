@@ -21,7 +21,7 @@ interface Floater {
 
 export function createFlowFx(course: Course) {
   const group = new THREE.Group();
-  const rand = rng(17);
+  let rand = rng(17);
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
@@ -104,6 +104,13 @@ export function createFlowFx(course: Course) {
 
   return {
     group,
+    /** Restart the streaks, petals and ripples from a fixed seed (for repeatable captures). */
+    reseed() {
+      rand = rng(17);
+      for (const f of [...sp, ...pp]) f.life = 0;
+      for (const r of wakes) r.userData.age = 99;
+      wakeTimer = 0;
+    },
     update(
       dt: number,
       focus: { x: number; y: number },

@@ -1,0 +1,335 @@
+{
+  "capturedAt": "2026-09-28T09:01:34.876Z",
+  "base": "http://127.0.0.1:4618/",
+  "shots": [
+    {
+      "id": "establishing-wide",
+      "purpose": "Reach 1 from above: the current, the branch, both passages and the flooded pot.",
+      "hero": false,
+      "size": [
+        1440,
+        900,
+        1
+      ],
+      "info": {
+        "bookmark": "establishing-wide",
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "softwareRenderer": true,
+        "three": "186",
+        "outputColorSpace": "srgb",
+        "toneMapping": 4,
+        "exposure": 1.05,
+        "environment": false,
+        "pixelRatio": 1,
+        "drawCalls": 178,
+        "rendererTriangles": 322712,
+        "textures": 7,
+        "geometries": 111,
+        "meshes": 362,
+        "instances": 2937,
+        "sceneTriangles": 233301,
+        "lights": [
+          {
+            "type": "HemisphereLight",
+            "intensity": 1.1
+          },
+          {
+            "type": "DirectionalLight",
+            "intensity": 2.6
+          },
+          {
+            "type": "PointLight",
+            "intensity": 1.5
+          }
+        ],
+        "materialTypes": [
+          "MeshStandardMaterial",
+          "MeshBasicMaterial"
+        ],
+        "assetBytes": 1980077
+      }
+    },
+    {
+      "id": "hero",
+      "purpose": "The game as played: aiming a crosswind at the branch, HUD and route preview.",
+      "hero": true,
+      "size": [
+        1440,
+        900,
+        1
+      ],
+      "info": {
+        "bookmark": "hero",
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "softwareRenderer": true,
+        "three": "186",
+        "outputColorSpace": "srgb",
+        "toneMapping": 4,
+        "exposure": 1.05,
+        "environment": false,
+        "pixelRatio": 1,
+        "drawCalls": 136,
+        "rendererTriangles": 317910,
+        "textures": 6,
+        "geometries": 82,
+        "meshes": 362,
+        "instances": 2937,
+        "sceneTriangles": 233301,
+        "lights": [
+          {
+            "type": "HemisphereLight",
+            "intensity": 1.1
+          },
+          {
+            "type": "DirectionalLight",
+            "intensity": 2.6
+          },
+          {
+            "type": "PointLight",
+            "intensity": 1.5
+          }
+        ],
+        "materialTypes": [
+          "MeshStandardMaterial",
+          "MeshBasicMaterial"
+        ],
+        "assetBytes": 1980077
+      }
+    },
+    {
+      "id": "closeup-boat",
+      "purpose": "Arm's length: the leaf boat, twig mast, petal sail and the beetle in its coat.",
+      "hero": false,
+      "size": [
+        1440,
+        900,
+        1
+      ],
+      "info": {
+        "bookmark": "closeup-boat",
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "softwareRenderer": true,
+        "three": "186",
+        "outputColorSpace": "srgb",
+        "toneMapping": 4,
+        "exposure": 1.05,
+        "environment": false,
+        "pixelRatio": 1,
+        "drawCalls": 103,
+        "rendererTriangles": 314740,
+        "textures": 6,
+        "geometries": 79,
+        "meshes": 362,
+        "instances": 2937,
+        "sceneTriangles": 233301,
+        "lights": [
+          {
+            "type": "HemisphereLight",
+            "intensity": 1.1
+          },
+          {
+            "type": "DirectionalLight",
+            "intensity": 2.6
+          },
+          {
+            "type": "PointLight",
+            "intensity": 1.5
+          }
+        ],
+        "materialTypes": [
+          "MeshStandardMaterial",
+          "MeshBasicMaterial"
+        ],
+        "assetBytes": 1980077
+      }
+    },
+    {
+      "id": "grazing-materials",
+      "purpose": "Low across the water at the chute rock and bank: reflections, wet stone, the bed.",
+      "hero": false,
+      "size": [
+        1440,
+        900,
+        1
+      ],
+      "info": {
+        "bookmark": "grazing-materials",
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "softwareRenderer": true,
+        "three": "186",
+        "outputColorSpace": "srgb",
+        "toneMapping": 4,
+        "exposure": 1.05,
+        "environment": false,
+        "pixelRatio": 1,
+        "drawCalls": 159,
+        "rendererTriangles": 322606,
+        "textures": 7,
+        "geometries": 140,
+        "meshes": 362,
+        "instances": 2937,
+        "sceneTriangles": 233301,
+        "lights": [
+          {
+            "type": "HemisphereLight",
+            "intensity": 1.1
+          },
+          {
+            "type": "DirectionalLight",
+            "intensity": 2.6
+          },
+          {
+            "type": "PointLight",
+            "intensity": 1.5
+          }
+        ],
+        "materialTypes": [
+          "MeshStandardMaterial",
+          "MeshBasicMaterial"
+        ],
+        "assetBytes": 1980077
+      }
+    },
+    {
+      "id": "phone-hero",
+      "purpose": "The hero moment in portrait on a phone.",
+      "hero": true,
+      "size": [
+        390,
+        844,
+        2
+      ],
+      "info": {
+        "bookmark": "phone-hero",
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "softwareRenderer": true,
+        "three": "186",
+        "outputColorSpace": "srgb",
+        "toneMapping": 4,
+        "exposure": 1.05,
+        "environment": false,
+        "pixelRatio": 2,
+        "drawCalls": 141,
+        "rendererTriangles": 317646,
+        "textures": 7,
+        "geometries": 86,
+        "meshes": 362,
+        "instances": 2937,
+        "sceneTriangles": 233301,
+        "lights": [
+          {
+            "type": "HemisphereLight",
+            "intensity": 1.1
+          },
+          {
+            "type": "DirectionalLight",
+            "intensity": 2.6
+          },
+          {
+            "type": "PointLight",
+            "intensity": 1.5
+          }
+        ],
+        "materialTypes": [
+          "MeshStandardMaterial",
+          "MeshBasicMaterial"
+        ],
+        "assetBytes": 1980077
+      }
+    },
+    {
+      "id": "root-tunnel",
+      "purpose": "Under the root: shade, arches and shafts of light.",
+      "hero": false,
+      "size": [
+        1440,
+        900,
+        1
+      ],
+      "info": {
+        "bookmark": "root-tunnel",
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "softwareRenderer": true,
+        "three": "186",
+        "outputColorSpace": "srgb",
+        "toneMapping": 4,
+        "exposure": 1.05,
+        "environment": false,
+        "pixelRatio": 1,
+        "drawCalls": 134,
+        "rendererTriangles": 318822,
+        "textures": 7,
+        "geometries": 108,
+        "meshes": 362,
+        "instances": 2937,
+        "sceneTriangles": 233301,
+        "lights": [
+          {
+            "type": "HemisphereLight",
+            "intensity": 0.55
+          },
+          {
+            "type": "DirectionalLight",
+            "intensity": 1.04
+          },
+          {
+            "type": "PointLight",
+            "intensity": 1.5
+          }
+        ],
+        "materialTypes": [
+          "MeshStandardMaterial",
+          "MeshBasicMaterial"
+        ],
+        "assetBytes": 1980077
+      }
+    },
+    {
+      "id": "lantern-pond",
+      "purpose": "The warm finale: lanterns, fireflies and the gathering waiting on the raft.",
+      "hero": false,
+      "size": [
+        1440,
+        900,
+        1
+      ],
+      "info": {
+        "bookmark": "lantern-pond",
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "softwareRenderer": true,
+        "three": "186",
+        "outputColorSpace": "srgb",
+        "toneMapping": 4,
+        "exposure": 1.05,
+        "environment": false,
+        "pixelRatio": 1,
+        "drawCalls": 385,
+        "rendererTriangles": 337790,
+        "textures": 6,
+        "geometries": 248,
+        "meshes": 362,
+        "instances": 2937,
+        "sceneTriangles": 233301,
+        "lights": [
+          {
+            "type": "HemisphereLight",
+            "intensity": 1.2100000000000002
+          },
+          {
+            "type": "DirectionalLight",
+            "intensity": 2.2880000000000003
+          },
+          {
+            "type": "PointLight",
+            "intensity": 1.5
+          }
+        ],
+        "materialTypes": [
+          "MeshStandardMaterial",
+          "MeshBasicMaterial"
+        ],
+        "assetBytes": 1980077
+      }
+    }
+  ]
+}

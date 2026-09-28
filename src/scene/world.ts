@@ -13,12 +13,20 @@ import { createCarriedLantern, createLanterns } from "./lanterns";
 import { createMoodLight, moodAt } from "./mood";
 import { createObstacles } from "./obstacles";
 import { createPlaces } from "./places";
+import { playRescue } from "./rescue";
 import { createStage, toWorld } from "./stage";
 import { createWater } from "./water";
 
 export interface Aim {
   angle: number;
   strength: number;
+}
+
+/** A fixed camera for visual captures: position and target in world units. */
+export interface View {
+  position: [number, number, number];
+  target: [number, number, number];
+  fov?: number;
 }
 
 export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMotion: boolean) {
@@ -46,10 +54,21 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
   let clock = 0;
   /** How full the sail is after a gust; decays back to slack. */
   let billow = 0;
+  let view: View | null = null;
   const tmp = new THREE.Vector3();
   const dur = (s: number) => (reducedMotion ? s * 0.45 : s);
 
   function placeCamera(state: GameState, dt: number) {
+    if (view) {
+      camera.position.set(...view.position);
+      camera.lookAt(...view.target);
+      if (view.fov && camera.fov !== view.fov) {
+        camera.fov = view.fov;
+        camera.updateProjectionMatrix();
+      }
+      stage.follow(tmp.set(...view.target));
+      return;
+    }
     const portrait = stage.portrait();
     const target = boat.group.position;
     let off: THREE.Vector3;
@@ -96,59 +115,6 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
     }
   }
 
-  function rescueAnimation(state: GameState, onDone: () => void) {
-    const pool = course.reaches[state.reach]?.pool ?? course.start;
-    const from = toWorld(state.x, state.y);
-    const side = state.x > (pool.x ?? 0) ? 1 : -1;
-    const d = duck.group;
-    d.visible = true;
-    d.position.set(from.x + side * 6, 0, from.z - 3);
-    d.lookAt(from.x, 0, from.z);
-    d.rotateY(Math.PI);
-    carrying = true;
-    const tl = gsap.timeline({
-      onComplete: () => {
-        d.visible = false;
-        carrying = false;
-        onDone();
-      },
-    });
-    const toPool = toWorld(pool.x, pool.y);
-    tl.to(d.position, {
-      x: from.x + side * 1.7,
-      z: from.z - 1.4,
-      duration: dur(0.8),
-      ease: "power2.out",
-    })
-      .add(() => fx.splash(boat.group.position.clone().setY(0.2), 10, 1.2))
-      .to(boat.group.position, { y: 1.2, duration: dur(0.3), ease: "back.out(2)" })
-      .to(
-        d.position,
-        {
-          x: toPool.x + side * 1.7,
-          z: toPool.z - 1.4,
-          y: 0.6,
-          duration: dur(1.1),
-          ease: "sine.inOut",
-        },
-        ">",
-      )
-      .to(
-        boat.group.position,
-        { x: toPool.x, z: toPool.z, duration: dur(1.1), ease: "sine.inOut" },
-        "<",
-      )
-      .to(boat.group.position, { y: 0.01, duration: dur(0.3), ease: "bounce.out" })
-      .add(() => fx.bigSplash(boat.group.position))
-      .to(d.position, {
-        x: toPool.x + side * 9,
-        y: 0,
-        z: toPool.z + 2,
-        duration: dur(0.8),
-        ease: "power1.in",
-      });
-  }
-
   function onEvents(events: GameEvent[], state: GameState, rescueDone: () => void) {
     for (const e of events) {
       if (e.type === "gust") {
@@ -182,7 +148,11 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
           },
         });
       } else if (e.type === "stranded") {
-        rescueAnimation(state, rescueDone);
+        carrying = true;
+        playRescue({ course, state, duck: duck.group, boat: boat.group, fx, dur }, () => {
+          carrying = false;
+          rescueDone();
+        });
       } else if (e.type === "finished") {
         const lit = [...state.lanterns];
         lit.forEach((on, i) => {
@@ -258,6 +228,23 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
           l.position.y = 0.02 + Math.sin(clock * 1.6 + i) * 0.03;
       });
       renderer.render(scene, camera);
+    },
+    /** Visual captures: pin the camera (null returns it to the boat), the clock and the effects. */
+    setView(v: View | null) {
+      view = v;
+      stage.resize();
+    },
+    setClock(t: number) {
+      clock = t;
+    },
+    prime(state: GameState) {
+      flow.reseed();
+      for (let i = 0; i < 90; i++)
+        flow.update(1 / 30, { x: state.x, y: state.y }, true, {
+          x: state.x,
+          y: state.y,
+          visible: true,
+        });
     },
     reset(state: GameState) {
       gsap.globalTimeline.clear();

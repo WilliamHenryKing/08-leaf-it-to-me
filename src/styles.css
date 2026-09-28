@@ -141,3 +141,8 @@ kbd {
 #stage:focus-visible {
   outline-offset: -4px;
 }
+
+/* Visual captures of the scene alone. */
+.visual-no-ui #root {
+  display: none;
+}
