@@ -106,20 +106,23 @@ export function createBankside(course: Course) {
   const pebbles = new THREE.InstancedMesh(
     pebbleGeo,
     new THREE.MeshStandardMaterial({ roughness: 0.5 }),
-    260,
+    560,
   );
   n = 0;
   while (n < pebbles.count) {
     const y = -6 + rand() * 110;
     const side = rand() < 0.5 ? -1 : 1;
-    const x = centreX(y) + side * (halfWidth(y) - 0.15 + rand() * 2.2);
-    const r = 0.18 + rand() ** 2 * 0.6;
+    // Every other pebble lies on the bed, seen through the clear shallows.
+    const under = n % 2 === 0;
+    const off = under ? -(0.35 + rand() ** 1.5 * 2.4) : -0.15 + rand() * 2.2;
+    const x = centreX(y) + side * (halfWidth(y) + off);
+    const r = under ? 0.12 + rand() ** 2 * 0.3 : 0.18 + rand() ** 2 * 0.6;
     p.set(x, bankHeight(x, y) + r * 0.2, -y);
     e.set(rand() * 0.5, rand() * 6, rand() * 0.5);
     q.setFromEuler(e);
     s.setScalar(r);
     pebbles.setMatrixAt(n, m.compose(p, q, s));
-    col.setHSL(0.07 + rand() * 0.06, 0.1 + rand() * 0.12, 0.2 + rand() * 0.16);
+    col.setHSL(0.07 + rand() * 0.06, 0.1 + rand() * 0.14, (under ? 0.26 : 0.2) + rand() * 0.18);
     pebbles.setColorAt(n, col);
     n++;
   }

@@ -137,6 +137,9 @@ export function createCourse(): Course {
     eddies: [
       // Behind the flowerpot a gentle eddy turns you back into the stream.
       { c: at(1.6, 27.5), r: 2, speed: 0.6, spin: 1 },
+      // Small eddies curl in the lee of the rocks.
+      { c: at(-3.7, 24.4), r: 0.9, speed: 0.5, spin: -1 },
+      { c: at(4, 52.3), r: 1, speed: 0.5, spin: 1 },
       // The pond's slow gyre sweeps left past the reeds and back up the far side.
       { c: at(0, 86.5), r: 7.5, speed: 1, spin: -1 },
     ],

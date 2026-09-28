@@ -7,6 +7,7 @@ import { createBanks } from "./banks";
 import { createBankside } from "./bankside";
 import { createBoat } from "./boat";
 import { createDuck } from "./duck";
+import { createFlowFx } from "./flowfx";
 import { createFx } from "./fx";
 import { createCarriedLantern, createLanterns } from "./lanterns";
 import { createObstacles } from "./obstacles";
@@ -27,9 +28,10 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
   const carried = createCarriedLantern();
   boat.mastTop.add(carried.group);
   const duck = createDuck();
-  const fx = createFx(course);
+  const fx = createFx();
+  const flow = createFlowFx(course);
   scene.add(water.mesh, createBanks(), createBankside(course), createObstacles(course));
-  scene.add(lanterns.group, boat.group, duck.group, fx.group);
+  scene.add(lanterns.group, boat.group, duck.group, fx.group, flow.group);
 
   const focus = new THREE.Vector3(course.start.x, 0, -course.start.y);
   const camPos = new THREE.Vector3();
@@ -38,6 +40,8 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
   /** While the duck carries the boat, the scene owns the boat's position. */
   let carrying = false;
   let clock = 0;
+  /** How full the sail is after a gust; decays back to slack. */
+  let billow = 0;
   const tmp = new THREE.Vector3();
   const dur = (s: number) => (reducedMotion ? s * 0.45 : s);
 
@@ -77,7 +81,8 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
     h.rotation.y = -state.heading;
     h.rotation.z = -state.heel * 0.42;
     h.rotation.x = reducedMotion ? 0 : Math.sin(clock * 1.7) * 0.03;
-    boat.sail.scale.z = 1 + Math.abs(state.heel) * 2.2;
+    boat.sail.scale.z = 1 + Math.abs(state.heel) * 1.6 + billow * 3.2;
+    boat.sail.scale.x = 1 + billow * 0.15;
     const b = boat.beetle;
     const shiver = reducedMotion ? 0 : state.wet * Math.sin(clock * 38) * 0.18;
     b.rotation.set(0, shiver, state.heel * 0.3);
@@ -130,6 +135,7 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
         "<",
       )
       .to(boat.group.position, { y: 0.01, duration: dur(0.3), ease: "bounce.out" })
+      .add(() => fx.bigSplash(boat.group.position))
       .to(d.position, {
         x: toPool.x + side * 9,
         y: 0,
@@ -143,8 +149,11 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
     for (const e of events) {
       if (e.type === "gust") {
         fx.ring(boat.group.position);
+        fx.wind(boat.group.position, e.angle, e.strength);
+        billow = Math.max(billow, 0.4 + e.strength * 0.6);
+        if (e.spilled) fx.bigSplash(boat.group.position);
         boat.beetle.getWorldPosition(tmp);
-        fx.splash(tmp.setY(tmp.y + 0.15), e.spilled ? 16 : 5, e.spilled ? 1.1 : 0.7);
+        fx.splash(tmp.setY(tmp.y + 0.15), Math.round(4 + e.strength * 14), 0.6 + e.strength * 0.7);
       } else if (e.type === "bump") {
         fx.splash(boat.group.position.clone().setY(0.1), 8, 0.9);
       } else if (e.type === "lantern") {
@@ -230,7 +239,13 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
       placeBoat(state);
       placeCamera(state, dt);
       preview(state, aim);
-      fx.update(dt, { x: state.x, y: state.y }, flowing);
+      billow *= Math.exp(-dt * 2.5);
+      fx.update(dt);
+      flow.update(dt, { x: state.x, y: state.y }, flowing, {
+        x: boat.group.position.x,
+        y: -boat.group.position.z,
+        visible: !carrying,
+      });
       lanterns.floating.forEach((l, i) => {
         if (l.visible && !reducedMotion && !gsap.isTweening(l.position))
           l.position.y = 0.02 + Math.sin(clock * 1.6 + i) * 0.03;

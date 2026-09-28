@@ -17,7 +17,7 @@ const STEP = 1 / 60;
 export type Status = "intro" | "sailing" | "stranded" | "finished";
 
 export type GameEvent =
-  | { type: "gust"; strength: number; spilled: boolean; efficiency: number }
+  | { type: "gust"; angle: number; strength: number; spilled: boolean; efficiency: number }
   | { type: "bump"; speed: number }
   | { type: "lantern"; index: number }
   | { type: "checkpoint"; reach: number }
@@ -122,7 +122,7 @@ export function applyGust(course: Course, s: GameState, angle: number, strength:
   s.cooldown = 0.25 + 0.5 * strength;
   s.gusts++;
   s.gustsByReach[s.reach] = (s.gustsByReach[s.reach] ?? 0) + 1;
-  s.events.push({ type: "gust", strength, spilled, efficiency: imp.efficiency });
+  s.events.push({ type: "gust", angle, strength, spilled, efficiency: imp.efficiency });
   return true;
 }
 

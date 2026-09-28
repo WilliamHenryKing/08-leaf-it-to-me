@@ -1,16 +1,13 @@
-// Readability effects: drifting seed fluff that traces the current, the aim arrow,
-// the dotted route preview, gust rings and droplets shaken off the beetle's coat.
+// Gust and aim effects: the aim arrow, the dotted route preview, gust rings, wind streaks,
+// the splash crown of a spill and droplets shaken off the beetle's coat.
 import * as THREE from "three";
-import type { Course } from "../game/course";
-import { currentAt } from "../game/field";
-import { outside } from "./banks";
 import { rng } from "./bankside";
 
-const MOTES = 260;
 const DOTS = 31;
-const DROPS = 36;
+const DROPS = 90;
+const WINDS = 14;
 
-export function createFx(course: Course) {
+export function createFx() {
   const group = new THREE.Group();
   const rand = rng(5);
   const m = new THREE.Matrix4();
@@ -18,22 +15,39 @@ export function createFx(course: Course) {
   const s = new THREE.Vector3();
   const p = new THREE.Vector3();
 
-  // Seed fluff riding the current.
-  const motes = new THREE.InstancedMesh(
-    new THREE.CircleGeometry(0.035, 6),
-    new THREE.MeshBasicMaterial({ color: "#efe6cf", transparent: true, opacity: 0.85 }),
-    MOTES,
+  // Wind streaks: thin bright lines that blow in along the gust and past the sail.
+  const windGeo = new THREE.PlaneGeometry(1, 1);
+  windGeo.rotateX(-Math.PI / 2);
+  const winds = Array.from({ length: WINDS }, () => {
+    const w = new THREE.Mesh(
+      windGeo,
+      new THREE.MeshBasicMaterial({
+        color: "#fffaf0",
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    w.userData = { age: 99, life: 0.6, vx: 0, vz: 0 };
+    w.renderOrder = 3;
+    group.add(w);
+    return w;
+  });
+
+  // The crown of a big splash.
+  const crown = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.28, 0.2, 0.3, 24, 1, true),
+    new THREE.MeshBasicMaterial({
+      color: "#f2f6f2",
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
   );
-  const mp = Array.from({ length: MOTES }, () => ({ x: 0, y: -100, life: 0 }));
-  group.add(motes);
-  const spawn = (mote: { x: number; y: number; life: number }, fx: number, fy: number) => {
-    for (let tries = 0; tries < 8; tries++) {
-      mote.x = fx + (rand() - 0.5) * 20;
-      mote.y = fy - 6 + rand() * 26;
-      if (outside(mote.x, mote.y) < -0.2) break;
-    }
-    mote.life = 4 + rand() * 6;
-  };
+  crown.userData.age = 99;
+  group.add(crown);
 
   // Aim arrow: a flat chevron on the water, unit length along +Z before rotation.
   const shape = new THREE.Shape();
@@ -110,29 +124,25 @@ export function createFx(course: Course) {
 
   return {
     group,
-    update(dt: number, focus: { x: number; y: number }, flow: boolean) {
-      for (let i = 0; i < MOTES; i++) {
-        const mote = mp[i] as { x: number; y: number; life: number };
-        if (flow) {
-          const c = currentAt(course, mote);
-          mote.x += c.x * dt;
-          mote.y += c.y * dt;
-        }
-        mote.life -= dt;
-        if (
-          mote.life <= 0 ||
-          Math.abs(mote.x - focus.x) > 11 ||
-          mote.y < focus.y - 8 ||
-          mote.y > focus.y + 22 ||
-          outside(mote.x, mote.y) > -0.1
-        )
-          spawn(mote, focus.x, focus.y);
-        const fade = Math.min(1, mote.life / 1.5);
-        p.set(mote.x, 0.015, -mote.y);
-        s.setScalar(0.4 + fade * 0.6);
-        motes.setMatrixAt(i, m.compose(p, q, s));
+    update(dt: number) {
+      for (const w of winds) {
+        const u = w.userData as { age: number; life: number; vx: number; vz: number };
+        u.age += dt;
+        const t = u.age / u.life;
+        (w.material as THREE.MeshBasicMaterial).opacity = t < 1 ? 0.75 * Math.sin(Math.PI * t) : 0;
+        w.position.x += u.vx * dt;
+        w.position.z += u.vz * dt;
       }
-      motes.instanceMatrix.needsUpdate = true;
+      {
+        crown.userData.age += dt;
+        const a = crown.userData.age as number;
+        (crown.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.7 * (1 - a / 0.55));
+        crown.scale.set(
+          1 + a * 3,
+          0.4 + Math.sin(Math.min(1, a / 0.55) * Math.PI) * 1.6,
+          1 + a * 3,
+        );
+      }
 
       for (const r of rings) {
         r.userData.age += dt;
@@ -187,6 +197,40 @@ export function createFx(course: Course) {
       );
       r.userData.age = 0;
       r.position.set(at.x, 0.03, at.z);
+    },
+    /** Streaks of air blowing in along the gust (angle 0 = downstream) and past the boat. */
+    wind(at: THREE.Vector3, angle: number, strength: number) {
+      const dx = Math.sin(angle);
+      const dz = -Math.cos(angle);
+      const n = Math.round(4 + strength * 9);
+      let k = 0;
+      for (const w of winds) {
+        if (k >= n) break;
+        const u = w.userData as { age: number; life: number; vx: number; vz: number };
+        if (u.age < u.life) continue;
+        const side = (rand() - 0.5) * 1.6;
+        const back = 2 + rand() * 1.8;
+        w.position.set(
+          at.x - dx * back - dz * side,
+          0.15 + rand() * 0.7,
+          at.z - dz * back + dx * side,
+        );
+        w.rotation.y = Math.atan2(dx, dz);
+        w.scale.set(0.025, 1, 0.5 + strength * 0.9 + rand() * 0.3);
+        const speed = 5 + strength * 5;
+        u.vx = dx * speed;
+        u.vz = dz * speed;
+        u.life = 0.45 + rand() * 0.25;
+        u.age = -k * 0.03;
+        k++;
+      }
+    },
+    /** A proper splash: a crown of water and a burst of drops. */
+    bigSplash(at: THREE.Vector3) {
+      crown.userData.age = 0;
+      crown.position.set(at.x, 0.12, at.z);
+      this.splash(at.clone().setY(0.15), 34, 1.5);
+      this.ring(at);
     },
     splash(at: THREE.Vector3, count: number, power = 1) {
       let n = 0;

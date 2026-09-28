@@ -2,6 +2,10 @@
 import * as THREE from "three";
 import { type Course, centreX, halfWidth } from "../game/course";
 import { currentAt, windAt } from "../game/field";
+import { closestOnSegment } from "../game/vec";
+
+/** Water depth is read from distance to the nearest edge (bank or obstacle), up to this far. */
+export const EDGE_RANGE = 3;
 
 /** World extent covered by the flow map, in game units. */
 export const FLOW_BOUNDS = { x0: -16, x1: 16, y0: -6, y1: 106 };
@@ -58,7 +62,7 @@ export function createNoiseTexture(size = 128) {
   return tex;
 }
 
-/** RG: current (±4 u/s), B: wind reaching the water, A: nearness to the bank. */
+/** RG: current (±4 u/s), B: wind reaching the water, A: nearness to an edge (1 at a bank or rock). */
 export function createFlowTexture(course: Course, perUnit = 2) {
   const { x0, x1, y0, y1 } = FLOW_BOUNDS;
   const w = Math.round((x1 - x0) * perUnit);
@@ -69,12 +73,18 @@ export function createFlowTexture(course: Course, perUnit = 2) {
     for (let i = 0; i < w; i++) {
       const p = { x: x0 + ((i + 0.5) / w) * (x1 - x0), y: y0 + ((j + 0.5) / h) * (y1 - y0) };
       const c = currentAt(course, p);
-      const inside = halfWidth(p.y) - Math.abs(p.x - centreX(p.y));
+      let inside = halfWidth(p.y) - Math.abs(p.x - centreX(p.y));
+      // Rocks, the pot, roots and the branch make their own shallows and foam; lily pads float.
+      for (const o of course.obstacles) {
+        if (o.kind === "lily") continue;
+        const c = o.shape === "circle" ? o.c : closestOnSegment(p, o.a, o.b);
+        inside = Math.min(inside, Math.hypot(p.x - c.x, p.y - c.y) - o.r);
+      }
       const k = (j * w + i) * 4;
       data[k] = enc(c.x);
       data[k + 1] = enc(c.y);
       data[k + 2] = Math.round(windAt(course, p) * 255);
-      data[k + 3] = Math.round(Math.min(1, Math.max(0, 1 - inside / 0.9)) * 255);
+      data[k + 3] = Math.round(Math.min(1, Math.max(0, 1 - inside / EDGE_RANGE)) * 255);
     }
   }
   const tex = new THREE.DataTexture(data, w, h, THREE.RGBAFormat);

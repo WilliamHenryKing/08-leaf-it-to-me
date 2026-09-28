@@ -35,6 +35,8 @@ export function createBanks() {
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position as THREE.BufferAttribute;
   const colors = new Float32Array(pos.count * 3);
+  const bed = new THREE.Color("#2a2418");
+  const gravel = new THREE.Color("#9a8158");
   const mud = new THREE.Color("#3b2c1c");
   const wet = new THREE.Color("#5a4630");
   const moss = new THREE.Color("#51612b");
@@ -48,7 +50,10 @@ export function createBanks() {
     pos.setY(i, h);
     const d = outside(x, gy);
     const n = groundNoise(x * 1.7, gy * 1.3);
-    c.copy(mud).lerp(wet, smoothstep(-0.6, 0.3, d));
+    // The bed: sandy gravel in the clear shallows, dark silt in the channel.
+    c.copy(bed).lerp(gravel, smoothstep(-2.4, -0.6, d) * (0.75 + n * 0.25));
+    c.lerp(mud, smoothstep(-0.4, 0, d));
+    c.lerp(wet, smoothstep(-0.2, 0.3, d));
     c.lerp(moss, smoothstep(0.4, 1.6, d) * (0.65 + n * 0.35));
     c.lerp(litter, smoothstep(0.2, 0.9, n) * smoothstep(1.5, 3, d) * 0.6);
     colors.set([c.r, c.g, c.b], i * 3);
