@@ -6,6 +6,8 @@ import type { Course } from "../game/course";
 import { centreX, halfWidth } from "../game/course";
 import type { Assets } from "./assets";
 import { bankHeight, outside } from "./banks";
+import { createFlora } from "./flora";
+import { translucent } from "./skins";
 
 export function rng(seed: number) {
   let a = seed >>> 0;
@@ -20,21 +22,37 @@ export function rng(seed: number) {
 
 /** A tapered, curving blade of grass, 1 unit tall. */
 function bladeGeometry() {
-  const segs = 5;
+  // A folded blade: left edge, raised midrib, right edge; darker at the base, paler at the tip.
+  const segs = 7;
   const pts: number[] = [];
+  const col: number[] = [];
   const idx: number[] = [];
   for (let i = 0; i <= segs; i++) {
     const t = i / segs;
     const w = 0.09 * (1 - t) ** 0.8;
     const bend = t * t * 0.35;
-    pts.push(-w, t, bend, w, t, bend);
+    const fold = 0.022 * (1 - t);
+    pts.push(-w, t, bend, 0, t, bend - fold, w, t, bend);
+    const shade = 0.55 + 0.55 * t;
+    col.push(
+      shade * 0.92,
+      shade,
+      shade * 0.85,
+      shade * 1.05,
+      shade * 1.05,
+      shade,
+      shade * 0.92,
+      shade,
+      shade * 0.85,
+    );
     if (i < segs) {
-      const k = i * 2;
-      idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2);
+      const k = i * 3;
+      idx.push(k, k + 1, k + 3, k + 1, k + 4, k + 3, k + 1, k + 2, k + 4, k + 2, k + 5, k + 4);
     }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
   g.setIndex(idx);
   g.computeVertexNormals();
   return g;
@@ -73,7 +91,14 @@ export function createBankside(course: Course, assets: Assets) {
   // Grass: dense near the water, towering over the leaf.
   const blades = new THREE.InstancedMesh(
     bladeGeometry(),
-    new THREE.MeshStandardMaterial({ roughness: 0.8, side: THREE.DoubleSide }),
+    translucent(
+      new THREE.MeshStandardMaterial({
+        roughness: 0.62,
+        side: THREE.DoubleSide,
+        vertexColors: true,
+      }),
+      0.55,
+    ),
     1400,
   );
   let n = 0;
@@ -137,95 +162,7 @@ export function createBankside(course: Course, assets: Assets) {
     group.add(pebbles);
   }
 
-  const leafMat = new THREE.MeshStandardMaterial({
-    color: "#4f7a2a",
-    roughness: 0.7,
-    side: THREE.DoubleSide,
-  });
-  const stemMat = new THREE.MeshStandardMaterial({ color: "#6b7f36", roughness: 0.8 });
-  const reedMat = new THREE.MeshStandardMaterial({ color: "#7c8a3f", roughness: 0.75 });
-  const clover = cloverGeometry();
-  for (const sh of course.shelters) {
-    if (sh.kind === "clover") {
-      // Clover leaves arch over the lane from the bank: the wind shadow you can see.
-      for (let i = 0; i < 4; i++) {
-        const a = (i / 4) * Math.PI * 2 + rand();
-        const cx = sh.c.x + Math.cos(a) * sh.r * 0.45 + 1.2;
-        const cy = sh.c.y + Math.sin(a) * sh.r * 0.55;
-        const top = 2.2 + rand() * 0.9;
-        const leaf = new THREE.Mesh(clover, leafMat);
-        leaf.position.set(cx, top, -cy);
-        leaf.rotation.set((rand() - 0.5) * 0.3, rand() * 6, (rand() - 0.5) * 0.3);
-        leaf.scale.setScalar(1.3 + rand() * 0.5);
-        leaf.castShadow = true;
-        const baseX = sh.c.x + sh.r + 1.5;
-        const stem = tube(
-          [
-            new THREE.Vector3(baseX, 0.3, -cy),
-            new THREE.Vector3(cx + 1, top + 0.4, -cy),
-            new THREE.Vector3(cx, top, -cy),
-          ],
-          0.07,
-          stemMat,
-        );
-        group.add(leaf, stem);
-      }
-    } else if (sh.kind === "reeds") {
-      for (let i = 0; i < 26; i++) {
-        const a = rand() * Math.PI * 2;
-        const r = Math.sqrt(rand()) * sh.r;
-        const x = sh.c.x + Math.cos(a) * r - 1.4;
-        const y = sh.c.y + Math.sin(a) * r;
-        const h = 3 + rand() * 3;
-        const lean = new THREE.Vector3((rand() - 0.3) * 0.8, h, (rand() - 0.5) * 0.6);
-        const base = new THREE.Vector3(x, -0.3, -y);
-        const reed = tube(
-          [base, base.clone().add(lean.clone().multiplyScalar(0.5)), base.clone().add(lean)],
-          0.06,
-          reedMat,
-        );
-        group.add(reed);
-        if (rand() < 0.35) {
-          const head = new THREE.Mesh(
-            new THREE.CapsuleGeometry(0.13, 0.5, 4, 8),
-            new THREE.MeshStandardMaterial({ color: "#5a3a1e", roughness: 0.9 }),
-          );
-          head.position
-            .copy(base)
-            .add(lean)
-            .add(new THREE.Vector3(0, 0.1, 0));
-          head.castShadow = true;
-          group.add(head);
-        }
-      }
-    }
-  }
-
-  // Mushrooms on the banks: parasols overhead.
-  const capMat = new THREE.MeshStandardMaterial({ color: "#b0532c", roughness: 0.6 });
-  const gillMat = new THREE.MeshStandardMaterial({ color: "#e9dcc0", roughness: 0.8 });
-  for (const [x, y, sc] of [
-    [-6, 8, 1],
-    [6.5, 40, 1.3],
-    [-7.8, 60, 0.9],
-    [9.5, 95, 1.2],
-  ] as [number, number, number][]) {
-    const gx = centreX(y) + x;
-    const g = new THREE.Group();
-    const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 1.6, 10), gillMat);
-    stalk.position.y = 0.8;
-    const cap = new THREE.Mesh(
-      new THREE.SphereGeometry(0.9, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2),
-      capMat,
-    );
-    cap.scale.y = 0.55;
-    cap.position.y = 1.55;
-    stalk.castShadow = cap.castShadow = true;
-    g.add(stalk, cap);
-    g.position.set(gx, bankHeight(gx, y) - 0.1, -y);
-    g.scale.setScalar(sc);
-    group.add(g);
-  }
+  group.add(createFlora(course, rand, cloverGeometry()));
   return group;
 }
 

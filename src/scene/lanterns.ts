@@ -1,6 +1,7 @@
 // Floating seed lanterns to gather, and the evening gathering at the pond's edge.
 import * as THREE from "three";
 import type { Course } from "../game/course";
+import type { PbrSet } from "./assets";
 import { createBeetle } from "./boat";
 import { createGlowTexture } from "./textures";
 
@@ -8,7 +9,8 @@ const glowTex = createGlowTexture();
 const paper = new THREE.MeshStandardMaterial({
   color: "#ffb45a",
   emissive: "#ff8a2a",
-  emissiveIntensity: 1.6,
+  // Bright enough to cross the bloom threshold; the light it casts comes from real lights.
+  emissiveIntensity: 7,
   roughness: 0.6,
 });
 const unlit = new THREE.MeshStandardMaterial({ color: "#8a6a4a", roughness: 0.8 });
@@ -28,7 +30,7 @@ function lanternMesh(mat: THREE.Material, scale = 1) {
     new THREE.Vector2(0.03, 0.15),
     new THREE.Vector2(0.001, 0.15),
   ];
-  const m = new THREE.Mesh(new THREE.LatheGeometry(pts, 14), mat);
+  const m = new THREE.Mesh(new THREE.LatheGeometry(pts, 22), mat);
   m.scale.setScalar(scale);
   return m;
 }
@@ -48,7 +50,7 @@ export function glow(size: number, opacity = 0.8) {
   return s;
 }
 
-export function createLanterns(course: Course) {
+export function createLanterns(course: Course, bark: PbrSet | null = null) {
   const group = new THREE.Group();
   const floating = course.lanterns.map((l) => {
     const g = new THREE.Group();
@@ -57,9 +59,7 @@ export function createLanterns(course: Course) {
     const lamp = lanternMesh(paper);
     lamp.position.y = 0.17;
     lamp.castShadow = true;
-    const halo = glow(1.1);
-    halo.position.y = 0.2;
-    g.add(pad, lamp, halo);
+    g.add(pad, lamp);
     g.position.set(l.x, 0.02, -l.y);
     group.add(g);
     return g;
@@ -69,14 +69,36 @@ export function createLanterns(course: Course) {
   const gathering = new THREE.Group();
   const f = course.finish.c;
   gathering.position.set(f.x + 1.2, 0, -f.y);
-  const raft = new THREE.Mesh(
-    new THREE.BoxGeometry(2.6, 0.18, 3.2),
-    new THREE.MeshStandardMaterial({ color: "#6b4a30", roughness: 0.95 }),
-  );
-  raft.position.y = 0.1;
+  // A raft of five twig logs lashed with grass.
+  const raft = new THREE.Group();
+  const lash = new THREE.MeshStandardMaterial({ color: "#8a8a4a", roughness: 0.9 });
+  for (let i = 0; i < 5; i++) {
+    const log = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.26, 0.28, 3.3, 14),
+      new THREE.MeshStandardMaterial({
+        color: bark
+          ? new THREE.Color("#c8b49c").offsetHSL(0, 0, (i % 3) * 0.04 - 0.04)
+          : new THREE.Color("#6b4a30"),
+        map: bark?.map ?? null,
+        normalMap: bark?.normalMap ?? null,
+        roughnessMap: bark?.arm ?? null,
+        roughness: 0.95,
+      }),
+    );
+    log.rotation.x = Math.PI / 2;
+    log.position.set(-1.05 + i * 0.52, 0.2, (i % 2) * 0.12);
+    raft.add(log);
+  }
+  for (const z of [-1.1, 1.1]) {
+    const band = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.08, 0.14), lash);
+    band.position.set(0, 0.46, z);
+    raft.add(band);
+  }
   raft.rotation.y = 0.2;
-  raft.receiveShadow = true;
-  raft.castShadow = true;
+  raft.traverse((o) => {
+    o.castShadow = true;
+    o.receiveShadow = true;
+  });
   gathering.add(raft);
   // Guests crowd the raft's edge, facing the water, waiting for the beetle.
   const coats = ["#8a3a3a", "#3a5a8a", "#6a8a3a", "#8a6a9a", "#b0782a", "#3a7a7a", "#9a4a6a"];
@@ -115,10 +137,31 @@ export function createLanterns(course: Course) {
   gathering.add(light);
   group.add(gathering);
 
+  // Lanterns that glow get real light: a small pool of lamps follows the nearest ones afloat.
+  const lamps = Array.from({ length: 3 }, () => {
+    const l = new THREE.PointLight("#ffb060", 0, 5, 2);
+    group.add(l);
+    return l;
+  });
+  const near: THREE.Group[] = [];
+
   return {
     group,
     floating,
     guests,
+    /** Put the lamp pool on the three floating lanterns nearest the boat. */
+    updateLights(focus: THREE.Vector3) {
+      near.length = 0;
+      for (const l of floating) if (l.visible) near.push(l);
+      near.sort(
+        (a, b) => a.position.distanceToSquared(focus) - b.position.distanceToSquared(focus),
+      );
+      lamps.forEach((lamp, i) => {
+        const l = near[i];
+        lamp.intensity = l ? 2.2 : 0;
+        if (l) lamp.position.copy(l.position).setY(0.35);
+      });
+    },
     /** Light the string: one slot per gathered lantern. */
     lightSlots(lit: boolean[]) {
       let k = 0;

@@ -3,6 +3,8 @@ import * as THREE from "three";
 import { type Course, centreX, type Obstacle } from "../game/course";
 import type { Assets } from "./assets";
 import { rng, tube } from "./bankside";
+import { fadeWhenOccluding } from "./occlude";
+import { lilySkin, translucent } from "./skins";
 import { scannedRock } from "./stones";
 import { wetLine } from "./wet";
 
@@ -253,6 +255,14 @@ function rootArch(course: Course) {
 
 export function createObstacles(course: Course, assets: Assets) {
   applyBark(assets);
+  // The root arches must never hide the leaf passing beneath them.
+  fadeWhenOccluding(root);
+  const pad = lilySkin();
+  lilyMat.map = pad.map;
+  lilyMat.normalMap = pad.normalMap;
+  lilyMat.color.set("#ffffff");
+  lilyMat.roughness = 0.32;
+  translucent(lilyMat, 0.5);
   let seed = 40;
   const group = new THREE.Group();
   for (const o of course.obstacles) {

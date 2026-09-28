@@ -14,6 +14,7 @@ import { createGroundMaterial } from "./ground";
 import { createCarriedLantern, createLanterns } from "./lanterns";
 import { createMoodLight, moodAt } from "./mood";
 import { createObstacles } from "./obstacles";
+import { updateOcclusion } from "./occlude";
 import { createPlaces } from "./places";
 import { playRescue } from "./rescue";
 import { sunUniforms } from "./skins";
@@ -42,7 +43,7 @@ export function createWorld(
   const stage = createStage(canvas);
   const { scene, camera } = stage;
   const water = createWater(course);
-  const lanterns = createLanterns(course);
+  const lanterns = createLanterns(course, assets.bark);
   const boat = createBoat();
   const carried = createCarriedLantern();
   boat.mastTop.add(carried.group);
@@ -58,7 +59,7 @@ export function createWorld(
     createStones(assets),
     createObstacles(course, assets),
   );
-  const places = createPlaces(course);
+  const places = createPlaces(course, assets);
   const mood = createMoodLight(stage);
   // Transparent surfaces and effects stay out of the ambient-occlusion depth pass.
   for (const o of [water.mesh, fx.group, flow.group]) stage.pipeline.hideFromAO(o);
@@ -74,6 +75,7 @@ export function createWorld(
   /** How full the sail is after a gust; decays back to slack. */
   let billow = 0;
   let view: View | null = null;
+  const drawSize = new THREE.Vector2();
   const tmp = new THREE.Vector3();
   const dur = (s: number) => (reducedMotion ? s * 0.45 : s);
 
@@ -236,6 +238,9 @@ export function createWorld(
       groundUniforms.uTime.value = reducedMotion ? 0 : clock;
       groundUniforms.uSun.value.copy(stage.sun.color).multiplyScalar(stage.sun.intensity);
       sunUniforms.uSunColor.value.copy(groundUniforms.uSun.value);
+      stage.renderer.getDrawingBufferSize(drawSize);
+      updateOcclusion(camera, boat.group.position, drawSize.x, drawSize.y);
+      lanterns.updateLights(boat.group.position);
       sunUniforms.uSunDir.value
         .subVectors(stage.sun.position, stage.sun.target.position)
         .normalize()

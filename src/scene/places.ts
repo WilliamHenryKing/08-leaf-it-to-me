@@ -2,9 +2,11 @@
 // and shafts of light in the Root Tunnel, and a warm, firefly-lit evening at the Lantern Pond.
 import * as THREE from "three";
 import { type Course, centreX } from "../game/course";
+import type { Assets } from "./assets";
 import { bankHeight } from "./banks";
 import { rng, tube } from "./bankside";
 import { glow } from "./lanterns";
+import { fadeWhenOccluding } from "./occlude";
 
 const rand = rng(33);
 const W = (x: number, y: number, h = 0) => new THREE.Vector3(x, h, -y);
@@ -21,24 +23,6 @@ function lump(r: number, squash: number) {
   }
   g.computeVertexNormals();
   return g;
-}
-
-/** A soft light shaft: bright at the top, gone at the water, feathered at the sides. */
-function shaftTexture() {
-  const w = 32;
-  const h = 64;
-  const data = new Uint8Array(4 * w * h);
-  for (let j = 0; j < h; j++) {
-    const t = j / (h - 1);
-    for (let i = 0; i < w; i++) {
-      const side = Math.sin(((i + 0.5) / w) * Math.PI) ** 2;
-      data.set([255, 236, 190, Math.round(255 * t ** 1.4 * side * 0.8)], (j * w + i) * 4);
-    }
-  }
-  const tex = new THREE.DataTexture(data, w, h, THREE.RGBAFormat);
-  tex.magFilter = THREE.LinearFilter;
-  tex.needsUpdate = true;
-  return tex;
 }
 
 function flowerpotGarden(course: Course) {
@@ -82,9 +66,18 @@ function flowerpotGarden(course: Course) {
   return g;
 }
 
-function rootTunnel() {
+function rootTunnel(assets: Assets) {
   const g = new THREE.Group();
-  const earth = new THREE.MeshStandardMaterial({ color: "#3b2a1c", roughness: 1 });
+  // The overhanging bank: the same wet forest mud as the waterline (Poly Haven mud_forest).
+  const earth = fadeWhenOccluding(
+    new THREE.MeshStandardMaterial({
+      color: assets.mud ? "#ffffff" : "#3b2a1c",
+      map: assets.mud?.map ?? null,
+      normalMap: assets.mud?.normalMap ?? null,
+      roughnessMap: assets.mud?.arm ?? null,
+      roughness: 1,
+    }),
+  );
   // The earthen bank overhangs the tunnel from the left; the arches carry the rest of the roof,
   // so the camera always sees the boat and the light falls in between.
   for (const [y, len] of [
@@ -99,27 +92,40 @@ function rootTunnel() {
     roof.position.set(c - 6.4, 2.1, -y);
     g.add(roof);
   }
-  const tex = shaftTexture();
+  // Shafts of light between the arches: soft additive cones, brightest where you look through
+  // their full depth and fading to nothing at their edges and at the water.
+  const shaftMat = new THREE.ShaderMaterial({
+    uniforms: { uIntensity: { value: 0 }, uColor: { value: new THREE.Color("#ffe6b8") } },
+    vertexShader: `varying float vY; varying vec3 vN; varying vec3 vV;
+void main() {
+  vY = (position.y + 1.6) / 3.2;
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vN = normalize(normalMatrix * normal);
+  vV = normalize(-mv.xyz);
+  gl_Position = projectionMatrix * mv;
+}`,
+    fragmentShader: `uniform float uIntensity; uniform vec3 uColor; varying float vY; varying vec3 vN; varying vec3 vV;
+void main() {
+  float facing = pow(abs(dot(normalize(vN), normalize(vV))), 2.2);
+  float a = facing * smoothstep(0.02, 0.7, vY) * (1.0 - smoothstep(0.9, 1.0, vY)) * uIntensity;
+  gl_FragColor = vec4(uColor, a);
+}`,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+  });
   const shafts: THREE.Mesh[] = [];
   for (const y of [47.2, 49.4, 51.8]) {
     const c = centreX(y);
     const shaft = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.9, 3.2),
-      new THREE.MeshBasicMaterial({
-        map: tex,
-        transparent: true,
-        opacity: 0,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      }),
+      new THREE.CylinderGeometry(0.22, 0.55, 3.2, 28, 1, true),
+      shaftMat,
     );
     shaft.position.set(c - 2.6, 1.3, -y);
-    shaft.rotation.set(0, 0.5, 0.35);
-    const cross = shaft.clone();
-    cross.rotation.y += Math.PI / 2;
-    shafts.push(shaft, cross);
-    g.add(shaft, cross);
+    shaft.rotation.set(0.12, 0, 0.35);
+    shafts.push(shaft);
+    g.add(shaft);
   }
   g.traverse((o) => {
     if (o instanceof THREE.Mesh && o.material === earth) {
@@ -127,7 +133,7 @@ function rootTunnel() {
       o.receiveShadow = true;
     }
   });
-  return { group: g, shafts };
+  return { group: g, shafts, shaftMat };
 }
 
 function lanternPond(course: Course) {
@@ -216,18 +222,17 @@ function lanternPond(course: Course) {
   return { group: g, halos, flies };
 }
 
-export function createPlaces(course: Course) {
+export function createPlaces(course: Course, assets: Assets) {
   const group = new THREE.Group();
-  const tunnel = rootTunnel();
+  const tunnel = rootTunnel(assets);
   const pond = lanternPond(course);
   group.add(flowerpotGarden(course), tunnel.group, pond.group);
   return {
     group,
     update(clock: number, mood: { gloom: number; warmth: number }, still: boolean) {
-      for (const [i, s] of tunnel.shafts.entries()) {
-        const flicker = still ? 1 : 0.85 + 0.15 * Math.sin(clock * 0.7 + i);
-        (s.material as THREE.MeshBasicMaterial).opacity = 0.18 + mood.gloom * 0.5 * flicker;
-      }
+      const flicker = still ? 1 : 0.9 + 0.1 * Math.sin(clock * 0.7);
+      const intensity = tunnel.shaftMat.uniforms.uIntensity;
+      if (intensity) intensity.value = (0.06 + mood.gloom * 0.3) * flicker;
       for (const h of pond.halos)
         (h.material as THREE.SpriteMaterial).opacity = 0.25 + mood.warmth * 0.65;
       for (const f of pond.flies) {
