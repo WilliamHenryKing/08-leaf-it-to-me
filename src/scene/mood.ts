@@ -43,9 +43,10 @@ export function createMoodLight(stage: Stage) {
         stage.scene.environment = chosen.env;
         stage.scene.background = chosen.background;
       }
-      stage.sun.intensity = 3.2 * (1 - 0.7 * g) * (1 - 0.25 * w);
+      // Key to fill: the warm sun leads (about 4:1 over the sky light), so shadow shapes read.
+      stage.sun.intensity = 4 * (1 - 0.7 * g) * (1 - 0.25 * w);
       stage.sun.color.copy(PALETTE.sun).lerp(DUSK_SUN, w);
-      stage.scene.environmentIntensity = 1 - 0.6 * g;
+      stage.scene.environmentIntensity = 0.78 * (1 - 0.6 * g);
       stage.scene.backgroundIntensity = 1 - 0.6 * g;
       if (day && dusk) fog.color.copy(day.horizon).lerp(dusk.horizon, w);
       fog.color.lerp(TUNNEL_FOG, g * 0.7);

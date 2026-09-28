@@ -76,6 +76,9 @@ export function createWorld(
   let billow = 0;
   let view: View | null = null;
   const drawSize = new THREE.Vector2();
+  // Captures and tests need a fixed quality; everyone else gets the adaptive step.
+  const search = new URLSearchParams(location.search);
+  const adaptive = !search.has("e2e") && !search.has("capture");
   const tmp = new THREE.Vector3();
   const dur = (s: number) => (reducedMotion ? s * 0.45 : s);
 
@@ -228,8 +231,9 @@ export function createWorld(
       if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit)) return null;
       return { x: hit.x, y: -hit.z };
     },
-    frame(state: GameState, aim: Aim | null, dt: number, flowing: boolean) {
+    frame(state: GameState, aim: Aim | null, dt: number, flowing: boolean, frameSeconds = 0) {
       clock += dt;
+      if (adaptive) stage.pipeline.adapt(frameSeconds);
       placeBoat(state);
       const here = state.status === "finished" ? { gloom: 0, warmth: 1 } : moodAt(state.x, state.y);
       mood.update(here, dt, first);

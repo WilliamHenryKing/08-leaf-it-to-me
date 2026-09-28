@@ -257,8 +257,8 @@
     },
     {
       "file": "public/models/tree_stump_01.glb",
-      "bytes": 461924,
-      "sha256": "6d2953cfbb1b8e242830641088066c5343c8197a8908b6c118ca96d44a185042",
+      "bytes": 237656,
+      "sha256": "ab7ec424c88a8f74a5777a6ff8ecca8f20abfb133cc0f26153497eef791b15a9",
       "title": "Tree Stump 01",
       "kind": "model",
       "source": "https://polyhaven.com/a/tree_stump_01",
@@ -266,7 +266,7 @@
       "author": "Rob Tuytel (Poly Haven)",
       "licence": "CC0-1.0",
       "retrieved": "2026-09-28",
-      "processing": "gltf-transform 4.5 optimize: meshopt compression, textures to 512 px WebP.",
+      "processing": "gltf-transform 4.5 optimize: meshopt simplify to ~10 % of triangles (error 0.005), meshopt compression, textures to 512 px WebP.",
       "usedFor": "Three mossy stumps on the banks"
     },
     {

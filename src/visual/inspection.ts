@@ -1,7 +1,15 @@
 // window.__VISUAL_TEST__: a capture hook for visual review (dev builds and ?e2e only). It jumps to
 // a bookmark, freezes time and reports what the renderer is actually doing. Adapted from the
 // inspection hook in ODD TIDE.
-import { Mesh, REVISION, type Scene, type WebGLRenderer } from "three";
+import {
+  type Camera,
+  Mesh,
+  Raycaster,
+  REVISION,
+  type Scene,
+  Vector2,
+  type WebGLRenderer,
+} from "three";
 import { BOOKMARKS } from "./bookmarks";
 
 export interface VisualAdapter {
@@ -9,6 +17,7 @@ export interface VisualAdapter {
   /** Resolves when textures and environments have loaded. */
   loaded: Promise<unknown>;
   scene: Scene;
+  camera: Camera;
   apply(id: string): void;
   freeze(): void;
   render(): void;
@@ -21,6 +30,8 @@ export interface VisualTest {
   freeze(): void;
   settle(frames?: number): Promise<void>;
   info(): Record<string, unknown>;
+  /** What lies under a screen point (0..1, from top-left): for tracking down artefacts. */
+  pick(x: number, y: number): { type: string; name: string; material: string; parent: string }[];
 }
 
 declare global {
@@ -122,6 +133,31 @@ export function installVisualTest(adapter: VisualAdapter) {
       }
     },
     info: () => ({ bookmark, ...inspect(adapter.renderer, adapter.scene) }),
+    pick(x, y) {
+      const ray = new Raycaster();
+      ray.setFromCamera(new Vector2(x * 2 - 1, 1 - y * 2), adapter.camera);
+      const seen = (o: unknown) => {
+        const m = (o as Mesh).material as { opacity?: number; visible?: boolean } | undefined;
+        return !m || ((m.opacity ?? 1) > 0.01 && m.visible !== false);
+      };
+      return ray
+        .intersectObject(adapter.scene, true)
+        .filter((h) => h.object.visible && seen(h.object))
+        .slice(0, 4)
+        .map((h) => {
+          const m = (h.object as Mesh).material as { type?: string; name?: string } | undefined;
+          const g = (h.object as Mesh).geometry as { type?: string } | undefined;
+          return {
+            type: `${h.object.type}/${g?.type ?? ""}`,
+            name: h.object.name,
+            material: `${m?.type ?? ""}${m?.name ? ` ${m.name}` : ""}`,
+            parent: `${h.object.parent?.type ?? ""} at ${h.point
+              .toArray()
+              .map((v) => v.toFixed(2))
+              .join(",")}`,
+          };
+        });
+    },
   };
   window.__VISUAL_TEST__ = api;
 }

@@ -118,12 +118,16 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
       const env = pmrem.fromEquirectangular(tex).texture;
       return { env, background: tex, horizon: horizonColour(tex) };
     });
-  const ready = Promise.all([load("river_walk_1_1k.hdr"), load("sunset_forest_1k.hdr")])
-    .then(([day, dusk]) => {
+  // The day sky comes first; the dusk sky is only needed at the pond, so it follows after.
+  const ready = load("river_walk_1_1k.hdr")
+    .then((day) => {
       skies.day = day;
-      skies.dusk = dusk;
       scene.environment = day.env;
       scene.background = day.background;
+      return load("sunset_forest_1k.hdr");
+    })
+    .then((dusk) => {
+      skies.dusk = dusk;
     })
     .catch(() => {
       // Without the HDRIs the scene still renders by sun and fog alone.

@@ -65,7 +65,8 @@ export function createFlowFx(course: Course) {
   const spawn = (f: Floater, fx: number, fy: number, span: number) => {
     for (let tries = 0; tries < 8; tries++) {
       f.x = fx + (rand() - 0.5) * 22;
-      f.y = fy - 6 + rand() * span;
+      // Never right under the camera (which sits behind the boat): only from just behind it on.
+      f.y = fy - 1.5 + rand() * span;
       if (outside(f.x, f.y) < -0.25) break;
     }
     f.max = 3 + rand() * 5;
@@ -85,7 +86,7 @@ export function createFlowFx(course: Course) {
   const gone = (f: Floater, fx: number, fy: number) =>
     f.life <= 0 ||
     Math.abs(f.x - fx) > 12 ||
-    f.y < fy - 8 ||
+    f.y < fy - 3 ||
     f.y > fy + 24 ||
     outside(f.x, f.y) > -0.12;
 

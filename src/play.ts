@@ -183,7 +183,7 @@ export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
     const scale = aim ? AIM_TIME_SCALE : 1;
     if (!document.hidden) step(course, state, dt * scale);
     handle(takeEvents(state));
-    world.frame(state, aim, dt, state.status !== "stranded");
+    world.frame(state, aim, dt, state.status !== "stranded", real);
     audio.setWater(Math.hypot(state.vx, state.vy), state.reach === 2);
     if (firstFrame) {
       firstFrame = false;

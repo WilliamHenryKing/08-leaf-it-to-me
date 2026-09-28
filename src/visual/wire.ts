@@ -24,6 +24,7 @@ export function wireVisualTest(host: VisualHost) {
     renderer: world.stage.renderer,
     loaded: world.stage.ready,
     scene: world.stage.scene,
+    camera: world.stage.camera,
     apply(id) {
       const b = BOOKMARKS.find((x) => x.id === id);
       if (!b) return;
