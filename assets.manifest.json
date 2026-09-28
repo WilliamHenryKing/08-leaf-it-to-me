@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "project": "leaf-it-to-me",
+  "policy": "CC0, public domain, NASA or CC-BY only; every shipped file listed with source, author, licence, retrieval date, sha256 and processing.",
+  "assets": [
+    {
+      "file": "public/env/river_walk_1_1k.hdr",
+      "bytes": 1972415,
+      "sha256": "51b4dceeb0d0ea328b40fe2dc023a466654268f4b87a3742615dda704d94c984",
+      "title": "River Walk 1",
+      "kind": "hdri",
+      "source": "https://polyhaven.com/a/river_walk_1",
+      "download": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/river_walk_1_1k.hdr",
+      "author": "Greg Zaal (Poly Haven)",
+      "licence": "CC0-1.0",
+      "retrieved": "2026-09-28",
+      "processing": "None: the 1k Radiance HDR as published. Used as scene.environment (PMREM) and blurred background for reaches 1-2.",
+      "usedFor": "Environment light and reflections"
+    },
+    {
+      "file": "public/env/sunset_forest_1k.hdr",
+      "bytes": 1843297,
+      "sha256": "189502addad02ba43449b895de66bcdf115e7150536d9150d9a7ba05e1d15b11",
+      "title": "Sunset Forest",
+      "kind": "hdri",
+      "source": "https://polyhaven.com/a/sunset_forest",
+      "download": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/sunset_forest_1k.hdr",
+      "author": "Andreas Mischok (Poly Haven)",
+      "licence": "CC0-1.0",
+      "retrieved": "2026-09-28",
+      "processing": "None: the 1k Radiance HDR as published. Environment and background at the Lantern Pond.",
+      "usedFor": "Dusk environment at the pond"
+    }
+  ]
+}

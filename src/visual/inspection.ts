@@ -6,6 +6,8 @@ import { BOOKMARKS } from "./bookmarks";
 
 export interface VisualAdapter {
   renderer: WebGLRenderer;
+  /** Resolves when textures and environments have loaded. */
+  loaded: Promise<unknown>;
   scene: Scene;
   apply(id: string): void;
   freeze(): void;
@@ -85,6 +87,7 @@ export function installVisualTest(adapter: VisualAdapter) {
   const api: VisualTest = {
     ready: (async () => {
       await document.fonts.ready;
+      await adapter.loaded;
       for (let i = 0; i < 3; i++) await frame();
     })(),
     bookmarks: BOOKMARKS.map(({ id, purpose, hero, size }) => ({ id, purpose, hero, size })),

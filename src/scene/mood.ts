@@ -17,16 +17,17 @@ export function moodAt(x: number, y: number): Mood {
   return { gloom: inTunnelSpan * underRoot, warmth: smoothstep(64, 80, y) };
 }
 
-const TUNNEL_FOG = new THREE.Color("#4a4630");
-const DUSK_FOG = new THREE.Color("#bfa48c");
-const DUSK_SUN = new THREE.Color("#ffb680");
-const DUSK_SKY = new THREE.Color("#9a8fb4");
+const TUNNEL_FOG = new THREE.Color("#262a18");
+const DUSK_SUN = new THREE.Color("#ffb070");
 
-/** Eases the stage's light, fog and background towards the mood of where the boat is. */
+/**
+ * Eases light, sky and fog towards the mood of where the boat is: under the root the sun and the
+ * environment dim together; at the pond the sky becomes the low forest sun and the key warms.
+ */
 export function createMoodLight(stage: Stage) {
   const current: Mood = { gloom: 0, warmth: 0 };
   const fog = stage.scene.fog as THREE.Fog;
-  const bg = stage.scene.background as THREE.Color;
+  let sky: "day" | "dusk" | null = null;
   return {
     current,
     update(target: Mood, dt: number, snap = false) {
@@ -34,16 +35,21 @@ export function createMoodLight(stage: Stage) {
       current.gloom += (target.gloom - current.gloom) * k;
       current.warmth += (target.warmth - current.warmth) * k;
       const { gloom: g, warmth: w } = current;
-      stage.sun.intensity = 2.6 * (1 - 0.6 * g) * (1 - 0.12 * w);
+      const { day, dusk } = stage.skies;
+      const want = w > 0.5 ? "dusk" : "day";
+      const chosen = want === "dusk" ? dusk : day;
+      if (chosen && sky !== want) {
+        sky = want;
+        stage.scene.environment = chosen.env;
+        stage.scene.background = chosen.background;
+      }
+      stage.sun.intensity = 3.2 * (1 - 0.7 * g) * (1 - 0.25 * w);
       stage.sun.color.copy(PALETTE.sun).lerp(DUSK_SUN, w);
-      stage.hemi.intensity = 1.1 * (1 - 0.5 * g) * (1 + 0.1 * w);
-      stage.hemi.color.copy(PALETTE.sky).lerp(DUSK_SKY, w);
-      fog.color
-        .copy(PALETTE.haze)
-        .lerp(DUSK_FOG, w * 0.8)
-        .lerp(TUNNEL_FOG, g * 0.7);
-      fog.near = 16 - g * 8;
-      bg.copy(fog.color);
+      stage.scene.environmentIntensity = 1 - 0.6 * g;
+      stage.scene.backgroundIntensity = 1 - 0.6 * g;
+      if (day && dusk) fog.color.copy(day.horizon).lerp(dusk.horizon, w);
+      fog.color.lerp(TUNNEL_FOG, g * 0.7);
+      fog.near = 18 - g * 9;
     },
   };
 }

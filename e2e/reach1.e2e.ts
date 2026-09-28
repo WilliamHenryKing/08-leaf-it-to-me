@@ -18,7 +18,8 @@ test("a deliberate crosswind carries the leaf through the chute and out of reach
   page,
 }) => {
   await page.addInitScript(() => localStorage.setItem("leaf-it-to-me:hint-seen", "1"));
-  await page.goto("/");
+  // The phone tier: no ambient occlusion, so software rendering keeps pace.
+  await page.goto("/?tier=low");
   await page.getByRole("button", { name: "Set sail" }).click();
 
   // Wait until the current has the leaf in its grip, heading for the branch.

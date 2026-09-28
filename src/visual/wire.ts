@@ -22,6 +22,7 @@ export function wireVisualTest(host: VisualHost) {
   const { world, course } = host;
   installVisualTest({
     renderer: world.stage.renderer,
+    loaded: world.stage.ready,
     scene: world.stage.scene,
     apply(id) {
       const b = BOOKMARKS.find((x) => x.id === id);

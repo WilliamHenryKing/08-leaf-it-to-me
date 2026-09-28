@@ -31,7 +31,7 @@ export interface View {
 
 export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMotion: boolean) {
   const stage = createStage(canvas);
-  const { scene, camera, renderer } = stage;
+  const { scene, camera } = stage;
   const water = createWater(course);
   const lanterns = createLanterns(course);
   const boat = createBoat();
@@ -43,6 +43,8 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
   scene.add(water.mesh, createBanks(), createBankside(course), createObstacles(course));
   const places = createPlaces(course);
   const mood = createMoodLight(stage);
+  // Transparent surfaces and effects stay out of the ambient-occlusion depth pass.
+  for (const o of [water.mesh, fx.group, flow.group]) stage.pipeline.hideFromAO(o);
   scene.add(lanterns.group, boat.group, duck.group, fx.group, flow.group, places.group);
 
   const focus = new THREE.Vector3(course.start.x, 0, -course.start.y);
@@ -227,7 +229,7 @@ export function createWorld(canvas: HTMLCanvasElement, course: Course, reducedMo
         if (l.visible && !reducedMotion && !gsap.isTweening(l.position))
           l.position.y = 0.02 + Math.sin(clock * 1.6 + i) * 0.03;
       });
-      renderer.render(scene, camera);
+      stage.render();
     },
     /** Visual captures: pin the camera (null returns it to the boat), the clock and the effects. */
     setView(v: View | null) {
