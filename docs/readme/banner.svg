@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1280 360" width="1280" height="360" role="img" aria-labelledby="t d">
+  <title id="t">LEAF IT TO ME</title>
+  <desc id="d">A curled-leaf boat with a beetle and a twig mast bobs down a brook at dusk while a gust fills its sail and a lantern glows downstream.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a3320"/>
+      <stop offset="0.55" stop-color="#4c5a2c"/>
+      <stop offset="1" stop-color="#6b6a36"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8f8a5a"/>
+      <stop offset="0.18" stop-color="#3d5a4a"/>
+      <stop offset="0.6" stop-color="#1c3a32"/>
+      <stop offset="0.9" stop-color="#3a5a44"/>
+      <stop offset="1" stop-color="#8a7f52"/>
+    </linearGradient>
+    <radialGradient id="lantern" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffd9a0" stop-opacity="0.95"/>
+      <stop offset="0.35" stop-color="#ffb45a" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#ffb45a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="dusk" cx="0.8" cy="0.1" r="0.7">
+      <stop offset="0" stop-color="#ffcf8a" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9ab83a"/>
+      <stop offset="1" stop-color="#4f7d22"/>
+    </linearGradient>
+    <g id="streaks">
+      <path d="M0 214h46M70 236h30M120 256h58M200 226h24M246 274h40M20 290h34M150 300h22M268 248h30M90 318h44M300 212h16" />
+    </g>
+    <path id="blade" d="M0 0c4-40 6-80 18-120c-4 44-8 84-10 120z"/>
+  </defs>
+
+  <style>
+    .streaks { stroke: #f4f1e2; stroke-width: 3; stroke-linecap: round; opacity: .55; }
+    .slow { stroke: #9fb4a4; stroke-width: 2; opacity: .35; }
+    .flow { animation: flow 3s linear infinite; }
+    .flow-slow { animation: flow 6s linear infinite; }
+    .bob { animation: bob 3s ease-in-out infinite; transform-origin: 640px 262px; }
+    .sail { animation: billow 6s ease-in-out infinite; transform-box: fill-box; transform-origin: left center; }
+    .gust { stroke: #fffaf0; stroke-width: 3; stroke-linecap: round; fill: none; stroke-dasharray: 60 400; animation: gust 6s ease-in infinite; opacity: 0; }
+    .gust.b { animation-delay: .15s; }
+    .gust.c { animation-delay: .3s; }
+    .glow { animation: glow 3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+    .ring { fill: none; stroke: #eef2e6; stroke-width: 2; animation: ring 3s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+    .title { font: 700 76px ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; fill: #f5ecd6; letter-spacing: 4px; }
+    .sub { font: 600 20px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: #e9dcbc; letter-spacing: 5px; }
+    @keyframes flow { from { transform: translateX(0); } to { transform: translateX(320px); } }
+    @keyframes bob { 0%, 100% { transform: translate(0, 0) rotate(-2deg); } 50% { transform: translate(6px, 5px) rotate(2.5deg); } }
+    @keyframes billow { 0%, 30%, 100% { transform: scaleX(1); } 42% { transform: scaleX(1.35); } 60% { transform: scaleX(1.12); } }
+    @keyframes gust { 0%, 18% { stroke-dashoffset: 460; opacity: 0; } 22% { opacity: .85; } 40% { stroke-dashoffset: 0; opacity: .85; } 48%, 100% { stroke-dashoffset: -60; opacity: 0; } }
+    @keyframes glow { 0%, 100% { transform: scale(1); opacity: .85; } 50% { transform: scale(1.18); opacity: 1; } }
+    @keyframes ring { from { transform: scale(.4); opacity: .5; } to { transform: scale(1.6); opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .flow, .flow-slow, .bob, .sail, .glow, .ring { animation: none; }
+      .gust { animation: none; opacity: .6; stroke-dasharray: none; }
+    }
+  </style>
+
+  <rect width="1280" height="360" fill="url(#sky)"/>
+  <rect width="1280" height="360" fill="url(#dusk)"/>
+
+  <!-- Far bank grass, towering at a beetle's scale. -->
+  <g fill="#3e5222" opacity=".9">
+    <use href="#blade" xlink:href="#blade" transform="translate(40 200) scale(1.3)"/>
+    <use href="#blade" xlink:href="#blade" transform="translate(96 206) scale(-1 1.1)"/>
+    <use href="#blade" xlink:href="#blade" transform="translate(180 204) scale(1.6)"/>
+    <use href="#blade" xlink:href="#blade" transform="translate(1040 204) scale(1.4)"/>
+    <use href="#blade" xlink:href="#blade" transform="translate(1120 200) scale(-1.2 1.5)"/>
+    <use href="#blade" xlink:href="#blade" transform="translate(1210 206) scale(1.1)"/>
+  </g>
+
+  <!-- The brook. -->
+  <rect y="196" width="1280" height="164" fill="url(#water)"/>
+  <g class="streaks slow">
+    <g class="flow-slow">
+      <use href="#streaks" xlink:href="#streaks" x="-320"/>
+      <use href="#streaks" xlink:href="#streaks" x="0"/>
+      <use href="#streaks" xlink:href="#streaks" x="320"/>
+      <use href="#streaks" xlink:href="#streaks" x="640"/>
+      <use href="#streaks" xlink:href="#streaks" x="960"/>
+    </g>
+  </g>
+  <g class="streaks">
+    <g class="flow">
+      <use href="#streaks" xlink:href="#streaks" x="-320" y="14"/>
+      <use href="#streaks" xlink:href="#streaks" x="0" y="14"/>
+      <use href="#streaks" xlink:href="#streaks" x="320" y="14"/>
+      <use href="#streaks" xlink:href="#streaks" x="640" y="14"/>
+      <use href="#streaks" xlink:href="#streaks" x="960" y="14"/>
+    </g>
+  </g>
+
+  <!-- Near bank. -->
+  <path d="M0 336c160-10 320 6 480-2s400-12 520 0 200 6 280 2V360H0z" fill="#3b2c1c"/>
+  <g fill="#4d6a28">
+    <use href="#blade" xlink:href="#blade" transform="translate(20 362) scale(1.5)"/>
+    <use href="#blade" xlink:href="#blade" transform="translate(70 362) scale(-1.1 1.2)"/>
+    <use href="#blade" xlink:href="#blade" transform="translate(1190 362) scale(1.4)"/>
+    <use href="#blade" xlink:href="#blade" transform="translate(1240 362) scale(-1.3 1.6)"/>
+  </g>
+
+  <!-- A lantern glowing downstream. -->
+  <g transform="translate(1030 250)">
+    <circle class="glow" r="58" fill="url(#lantern)"/>
+    <ellipse cy="12" rx="22" ry="5" fill="#6f8a2e"/>
+    <path d="M0-16c9 4 13 11 13 18c0 8-6 12-13 12s-13-4-13-12c0-7 4-14 13-18z" fill="#ffb45a"/>
+  </g>
+
+  <!-- The gust: streaks of air blowing in towards the sail. -->
+  <path class="gust" d="M360 150c80-8 160-6 250 18"/>
+  <path class="gust b" d="M330 186c90-4 180 2 270 16"/>
+  <path class="gust c" d="M380 120c70-2 140 8 220 34"/>
+
+  <!-- The leaf boat, its twig mast, petal sail and the beetle in a coat. -->
+  <g class="bob">
+    <ellipse class="ring" cx="640" cy="276" rx="92" ry="16"/>
+    <path d="M540 256c40 26 160 30 206 2c-4 14-26 24-96 26c-72 0-104-12-110-28z" fill="#2f4a1a" opacity=".45"/>
+    <path d="M536 250c34 30 170 34 214 0c-40 10-170 12-214 0z" fill="url(#leaf)"/>
+    <path d="M536 250c50 8 164 8 214 0" stroke="#b7c05a" stroke-width="2" fill="none"/>
+    <path d="M530 246c10 2 12 6 8 10" stroke="#6d6a24" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M652 254V150" stroke="#6a4a2e" stroke-width="4" stroke-linecap="round"/>
+    <path d="M636 156h34" stroke="#6a4a2e" stroke-width="3" stroke-linecap="round"/>
+    <path class="sail" d="M654 158c30 8 36 56 0 76z" fill="#f1e2c6"/>
+    <g transform="translate(606 222)">
+      <ellipse cx="0" cy="12" rx="17" ry="14" fill="#1f3a3a"/>
+      <path d="M-15 10c2 14 28 14 30 0l3 14c-6 6-30 6-36 0z" fill="#c98a2b"/>
+      <circle cx="0" cy="-5" r="9" fill="#161310"/>
+      <circle cx="4" cy="-7" r="2.2" fill="#f5efe0"/>
+      <path d="M2-13c4-10 10-12 14-10M-2-13c-2-10-6-13-10-12" stroke="#161310" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <text class="title" x="640" y="84" text-anchor="middle">LEAF IT TO ME</text>
+  <text class="sub" x="640" y="122" text-anchor="middle">STEER THE WIND · READ THE CURRENT</text>
+</svg>
