@@ -198,9 +198,15 @@ export function createPlay(canvas: HTMLCanvasElement) {
 
   let last = performance.now();
   let firstFrame = true;
+  const manualClock = new URLSearchParams(location.search).has("capture");
+  let queued = 0;
   const loop = (now: number) => {
     // Capped so a stall is not a leap; the rules still integrate in fixed 1/60 s steps.
-    const dt = Math.min(0.1, (now - last) / 1000);
+    const real = Math.min(0.1, (now - last) / 1000);
+    // Under ?capture the clock only moves when the capture script asks, one 1/30 s tick per frame.
+    const tick = Math.min(queued, 1 / 30);
+    queued -= tick;
+    const dt = manualClock ? tick : real;
     last = now;
     const scale = aim ? AIM_TIME_SCALE : 1;
     if (!document.hidden) step(course, state, dt * scale);
@@ -220,6 +226,11 @@ export function createPlay(canvas: HTMLCanvasElement) {
 
   // A read-only window onto the run, for the end-to-end test.
   (window as unknown as { leafItToMe: unknown }).leafItToMe = {
+    /** With ?capture: queue game time to play out; `pending()` reports what is left. */
+    advance: (seconds: number) => {
+      queued += Math.max(0, seconds);
+    },
+    pending: () => queued,
     snapshot: () => ({
       status: state.status,
       reach: state.reach,
