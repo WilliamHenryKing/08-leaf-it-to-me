@@ -199,7 +199,8 @@ export function createPlay(canvas: HTMLCanvasElement) {
   let last = performance.now();
   let firstFrame = true;
   const loop = (now: number) => {
-    const dt = Math.min(0.05, (now - last) / 1000);
+    // Capped so a stall is not a leap; the rules still integrate in fixed 1/60 s steps.
+    const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     const scale = aim ? AIM_TIME_SCALE : 1;
     if (!document.hidden) step(course, state, dt * scale);
