@@ -91,8 +91,8 @@ export function App({ play }: { play: Play }) {
               Reach {s.reach + 1} of 3
             </p>
             <p className="title text-lg leading-tight sm:text-xl">{s.reachName}</p>
-            <div className="mt-1.5 flex items-center gap-3 text-sm">
-              <span>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+              <span className="whitespace-nowrap">
                 <span className="font-semibold tabular-nums">{s.gustsByReach[s.reach] ?? 0}</span>{" "}
                 gust{(s.gustsByReach[s.reach] ?? 0) === 1 ? "" : "s"}
                 <span className="opacity-70"> · par {s.par[s.reach]}</span>
