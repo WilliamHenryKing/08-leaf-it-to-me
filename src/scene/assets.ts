@@ -63,7 +63,10 @@ export function splitPieces(geo: THREE.BufferGeometry): THREE.BufferGeometry[] {
   for (let t = 0; t < index.count; t += 3) {
     const root = find(index.getX(t));
     let list = groups.get(root);
-    if (!list) groups.set(root, (list = []));
+    if (!list) {
+      list = [];
+      groups.set(root, list);
+    }
     list.push(index.getX(t), index.getX(t + 1), index.getX(t + 2));
   }
   const pieces: THREE.BufferGeometry[] = [];
