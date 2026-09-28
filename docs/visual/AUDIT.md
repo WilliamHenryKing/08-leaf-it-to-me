@@ -46,3 +46,35 @@ Criteria: L light plausibility · M materials · D detail density · E environme
 8. **Props:** a real clay pot (scanned), bark on the branch and roots, a proper toadstool material, a textured raft.
 9. **Vegetation:** blades with a folded midrib, base-to-tip colour and width variation; instanced, varied reeds.
 10. **Close-range effects:** soften wake rings and streak quads (feathered textures instead of hard quads).
+
+## After — `docs/visual/captures/after/`
+
+Same bookmarks, same runner, same SwiftShader renderer, build `db01b4c`.
+
+| Bookmark | L | M | D | E | A | C | X | U | Mean | Before |
+| --- | - | - | - | - | - | - | - | - | --- | --- |
+| establishing-wide | 3 | 3 | 3 | 3 | 3 | 3 | 3 | – | **3.0** | 2.0 |
+| hero | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | **3.0** | 2.3 |
+| closeup-boat | 3 | 3 | 2 | 3 | 3 | 3 | 3 | – | **2.9** | 1.6 |
+| grazing-materials | 4 | 3 | 3 | 3 | 3 | 3 | 3 | – | **3.1** | 1.7 |
+| phone-hero | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | **3.0** | 2.3 |
+| root-tunnel | 3 | 3 | 2 | 3 | 3 | 2 | 2 | – | **2.6** | 1.4 |
+| lantern-pond | 3 | 3 | 3 | 3 | 4 | 3 | 3 | – | **3.1** | 1.9 |
+
+**Overall after: about 3.0, competent indie (from about 1.9).** Not yet the premium tier: the procedural hero props and the plastic-looking grass hold it back.
+
+### Target luminance relationships (checked on the hero)
+
+- The warm sun is the key: sunlit bank ≈ 3–4× the shaded bank; water in the channel sits one to two stops below the sunlit bank, and shallows about half a stop below it.
+- The boat (bright leaf green, cream sail) is the lightest mid-tone near frame centre; foam and glints are the only near-white, and small.
+- Lantern paper is the one source that blooms; the grade adds colour back (saturation 1.22) so the frame never reads grey.
+
+### Three most visible remaining flaws per bookmark
+
+- **establishing-wide:** a scanned boulder at the lower left reads very large and crumpled at this distance; the grass is flat-shaded blades with no alpha-tested cards; the far background is an empty haze where banks end.
+- **hero:** a stray white petal quad at lower right reads as a paper scrap; foam streaks are dense enough to look like rain in slack water; the upstream end of the stream shows no real horizon.
+- **closeup-boat:** the beetle is still primitive shapes (sphere head, no mandibles or segmented legs); the sail is a flat quad with no fibre; the stem trailing behind the leaf is a plain cylinder.
+- **grazing-materials:** grass blades are uniform, untextured and too tall for the frame; the lantern is a smooth lathe with no paper ribs; the water at the far bank has a visible seam where the flow map ends.
+- **phone-hero:** the HUD panel covers a third of the width at this size; the pot's water surface is too bright and flat; at low tier the lack of AO flattens where the branch meets the water.
+- **root-tunnel:** the light shaft is one bright column rather than dusty beams; roots are uniform tubes with a stretched bark texture; the dither fade shows as a visible screen-door band across the root in front of the boat.
+- **lantern-pond:** the raft guests are small and hard to read; lily pads are thin discs with no curl or water contact; the fireflies read as out-of-focus blobs rather than points of light.
