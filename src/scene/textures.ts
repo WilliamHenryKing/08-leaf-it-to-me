@@ -115,3 +115,34 @@ export function createGlowTexture(size = 64) {
   tex.needsUpdate = true;
   return tex;
 }
+
+function alphaTexture(w: number, h: number, alpha: (u: number, v: number) => number) {
+  const data = new Uint8Array(w * h * 4);
+  for (let j = 0; j < h; j++) {
+    for (let i = 0; i < w; i++) {
+      const a = Math.round(Math.min(1, Math.max(0, alpha((i + 0.5) / w, (j + 0.5) / h))) * 255);
+      data.set([a, a, a, 255], (j * w + i) * 4);
+    }
+  }
+  const tex = new THREE.DataTexture(data, w, h, THREE.RGBAFormat);
+  tex.magFilter = THREE.LinearFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** A feathered foam streak: soft across its width, fading in and out along its length. */
+export function createStreakAlpha() {
+  return alphaTexture(
+    16,
+    64,
+    (u, v) => Math.exp(-(((u - 0.5) / 0.22) ** 2)) * Math.sin(Math.PI * v) ** 0.8,
+  );
+}
+
+/** A feathered ripple ring on a unit plane: a soft band at ~0.42 of the plane's width. */
+export function createRingAlpha() {
+  return alphaTexture(128, 128, (u, v) => {
+    const r = Math.hypot(u - 0.5, v - 0.5);
+    return Math.exp(-(((r - 0.42) / 0.025) ** 2));
+  });
+}

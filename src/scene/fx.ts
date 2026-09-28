@@ -2,6 +2,7 @@
 // the splash crown of a spill and droplets shaken off the beetle's coat.
 import * as THREE from "three";
 import { rng } from "./bankside";
+import { createRingAlpha } from "./textures";
 
 const DOTS = 31;
 const DROPS = 90;
@@ -87,15 +88,17 @@ export function createFx() {
   dots.visible = false;
   group.add(dots);
 
-  // Gust rings.
+  // Gust rings: a feathered ripple, not a hard band.
+  const ringAlpha = createRingAlpha();
   const rings = Array.from({ length: 4 }, () => {
     const r = new THREE.Mesh(
-      new THREE.RingGeometry(0.9, 1, 40),
+      new THREE.PlaneGeometry(2.3, 2.3),
       new THREE.MeshBasicMaterial({
         color: "#fff8e8",
         transparent: true,
         opacity: 0,
         depthWrite: false,
+        alphaMap: ringAlpha,
       }),
     );
     r.rotation.x = -Math.PI / 2;

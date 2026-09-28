@@ -5,6 +5,7 @@ import type { Course } from "../game/course";
 import { currentAt } from "../game/field";
 import { outside } from "./banks";
 import { rng } from "./bankside";
+import { createRingAlpha, createStreakAlpha } from "./textures";
 
 const STREAKS = 460;
 const PETALS = 40;
@@ -35,7 +36,12 @@ export function createFlowFx(course: Course) {
   flat.rotateX(-Math.PI / 2);
   const streaks = new THREE.InstancedMesh(
     flat,
-    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, depthWrite: false }),
+    new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+      alphaMap: createStreakAlpha(),
+    }),
     STREAKS,
   );
   streaks.renderOrder = 1;
@@ -84,15 +90,17 @@ export function createFlowFx(course: Course) {
     outside(f.x, f.y) > -0.12;
 
   // Ripples spreading from the leaf.
+  const ringAlpha = createRingAlpha();
   const wakeMat = () =>
     new THREE.MeshBasicMaterial({
       color: "#eef2e6",
       transparent: true,
       opacity: 0,
       depthWrite: false,
+      alphaMap: ringAlpha,
     });
   const wakes = Array.from({ length: WAKES }, () => {
-    const r = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.44, 36), wakeMat());
+    const r = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), wakeMat());
     r.rotation.x = -Math.PI / 2;
     r.userData.age = 99;
     r.renderOrder = 1;
@@ -126,7 +134,7 @@ export function createFlowFx(course: Course) {
         const fade = Math.min(1, f.life / 1, (f.max - f.life) / 0.6);
         q.setFromAxisAngle(up, Math.atan2(c.x, -c.y));
         p.set(f.x, 0.02, -f.y);
-        s.set((0.012 + k * 0.022) * fade, 1, 0.05 + speed * 0.34);
+        s.set((0.024 + k * 0.04) * fade, 1, 0.07 + speed * 0.4);
         streaks.setMatrixAt(i, m.compose(p, q, s));
         streaks.setColorAt(i, col.copy(slow).lerp(quick, k ** 1.4));
       }

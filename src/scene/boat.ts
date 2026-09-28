@@ -1,5 +1,6 @@
 // The curled-leaf boat, its twig mast and petal sail, and the beetle in a coat.
 import * as THREE from "three";
+import { knitSkin, leafSkin, translucent } from "./skins";
 
 const LENGTH = 0.95;
 const HALF_WIDTH = 0.27;
@@ -10,6 +11,7 @@ function leafGeometry() {
   const nv = 10;
   const pos: number[] = [];
   const col: number[] = [];
+  const uv: number[] = [];
   const idx: number[] = [];
   const edge = new THREE.Color("#8a8a24");
   const body = new THREE.Color("#4f7d22");
@@ -24,6 +26,7 @@ function leafGeometry() {
       const x = k * w;
       const curl = 0.9 * (k * k) * w + 0.12 * s ** 4;
       pos.push(x, curl + 0.02, -s * (LENGTH / 2));
+      uv.push(j / nv, t);
       c.copy(body)
         .lerp(edge, Math.abs(k) ** 3)
         .lerp(rib, Math.max(0, 1 - Math.abs(k) * 12) * 0.8);
@@ -37,6 +40,7 @@ function leafGeometry() {
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
   g.setIndex(idx);
   g.computeVertexNormals();
   return g;
@@ -58,6 +62,8 @@ function sailGeometry() {
   return g;
 }
 
+let knit: ReturnType<typeof knitSkin> | null = null;
+
 export function createBeetle(coatColor = "#c98a2b") {
   const g = new THREE.Group();
   const shell = new THREE.MeshStandardMaterial({
@@ -65,18 +71,29 @@ export function createBeetle(coatColor = "#c98a2b") {
     roughness: 0.25,
     metalness: 0.3,
   });
-  const coat = new THREE.MeshStandardMaterial({ color: coatColor, roughness: 0.85 });
+  const coat = new THREE.MeshStandardMaterial({ color: coatColor, roughness: 0.95 });
+  knit ??= knitSkin();
+  knit.map.repeat.set(3, 2);
+  knit.normalMap.repeat.set(3, 2);
+  coat.map = knit.map;
+  coat.normalMap = knit.normalMap;
+  coat.normalScale.set(0.8, 0.8);
   const dark = new THREE.MeshStandardMaterial({ color: "#161310", roughness: 0.5 });
   const eye = new THREE.MeshStandardMaterial({ color: "#f5efe0", roughness: 0.3 });
 
   const body = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 12), shell);
   body.scale.set(0.9, 0.8, 1.15);
   body.position.y = 0.1;
-  // The coat: a short flared cape buttoned at the collar.
-  const cape = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.125, 0.14, 16, 1, true), coat);
-  cape.position.set(0, 0.11, 0.01);
+  // The coat: a knitted cape over the back, open at the front, buttoned at the collar.
+  const cape = new THREE.Mesh(
+    new THREE.SphereGeometry(0.108, 20, 12, Math.PI * 0.15, Math.PI * 1.7, 0, Math.PI * 0.62),
+    coat,
+  );
+  cape.scale.set(0.95, 0.9, 1.2);
+  cape.rotation.y = Math.PI;
+  cape.position.set(0, 0.1, 0.005);
   coat.side = THREE.DoubleSide;
-  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.068, 0.02, 8, 16), coat);
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.066, 0.013, 8, 20), coat);
   collar.rotation.x = Math.PI / 2;
   collar.position.set(0, 0.18, -0.01);
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 10), dark);
@@ -96,9 +113,10 @@ export function createBeetle(coatColor = "#c98a2b") {
   });
   const legs = [-1, 1].flatMap((sd) =>
     [-0.05, 0.02, 0.08].map((z) => {
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.006, 0.11, 4), dark);
-      leg.position.set(sd * 0.09, 0.05, z);
-      leg.rotation.z = sd * 0.9;
+      // Short, bent outwards, and resting on the leaf rather than through it.
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.006, 0.05, 5), dark);
+      leg.position.set(sd * 0.085, 0.07, z);
+      leg.rotation.z = sd * 1.15;
       return leg;
     }),
   );
@@ -123,9 +141,18 @@ export function createBoat(): BoatRig {
   hull.rotation.order = "YXZ";
   group.add(hull);
 
+  const skin = leafSkin();
   const leaf = new THREE.Mesh(
     leafGeometry(),
-    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, side: THREE.DoubleSide }),
+    translucent(
+      new THREE.MeshStandardMaterial({
+        map: skin.map,
+        normalMap: skin.normalMap,
+        roughness: 0.48,
+        side: THREE.DoubleSide,
+      }),
+      0.8,
+    ),
   );
   // Stem trailing behind like a tiller.
   const stem = new THREE.Mesh(
@@ -143,14 +170,17 @@ export function createBoat(): BoatRig {
   yard.position.set(0, 0.6, -0.16);
   const sail = new THREE.Mesh(
     sailGeometry(),
-    new THREE.MeshStandardMaterial({ color: "#f1e2c6", roughness: 0.7, side: THREE.DoubleSide }),
+    translucent(
+      new THREE.MeshStandardMaterial({ color: "#f1e2c6", roughness: 0.7, side: THREE.DoubleSide }),
+      0.9,
+    ),
   );
   sail.position.set(0, 0.41, -0.17);
   const mastTop = new THREE.Object3D();
   mastTop.position.set(0, 0.68, -0.14);
 
   const beetle = createBeetle();
-  beetle.position.set(0, 0.02, 0.14);
+  beetle.position.set(0, 0.045, 0.14);
 
   hull.add(leaf, stem, mast, yard, sail, mastTop, beetle);
   hull.traverse((o) => {

@@ -16,6 +16,7 @@ import { createMoodLight, moodAt } from "./mood";
 import { createObstacles } from "./obstacles";
 import { createPlaces } from "./places";
 import { playRescue } from "./rescue";
+import { sunUniforms } from "./skins";
 import { createStage, toWorld } from "./stage";
 import { createStones } from "./stones";
 import { createWater } from "./water";
@@ -234,6 +235,11 @@ export function createWorld(
       places.update(clock, mood.current, reducedMotion);
       groundUniforms.uTime.value = reducedMotion ? 0 : clock;
       groundUniforms.uSun.value.copy(stage.sun.color).multiplyScalar(stage.sun.intensity);
+      sunUniforms.uSunColor.value.copy(groundUniforms.uSun.value);
+      sunUniforms.uSunDir.value
+        .subVectors(stage.sun.position, stage.sun.target.position)
+        .normalize()
+        .transformDirection(camera.matrixWorldInverse);
       placeCamera(state, dt);
       preview(state, aim);
       billow *= Math.exp(-dt * 2.5);
