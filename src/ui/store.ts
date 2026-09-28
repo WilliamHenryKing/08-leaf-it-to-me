@@ -14,6 +14,12 @@ export interface HudState {
   toast: { id: number; text: string } | null;
   hint: boolean;
   muted: boolean;
+  par: number[];
+  /** Stars earned this run, per finished reach. */
+  stars: number[];
+  /** Best stars ever, per reach (0 = not yet finished). */
+  best: number[];
+  rescuesByReach: number[];
 }
 
 export function createStore(initial: HudState) {

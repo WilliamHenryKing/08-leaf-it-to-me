@@ -16,6 +16,15 @@ function Lantern({ lit }: { lit: boolean }) {
   );
 }
 
+function StarRow({ n, label }: { n: number; label: string }) {
+  return (
+    <span className="block text-lg tracking-wider text-[#c47a12]" role="img" aria-label={label}>
+      {"★".repeat(n)}
+      <span className="opacity-30">{"★".repeat(3 - n)}</span>
+    </span>
+  );
+}
+
 function SpeakerIcon({ muted }: { muted: boolean }) {
   return (
     <svg
@@ -84,8 +93,9 @@ export function App({ play }: { play: Play }) {
             <p className="title text-lg leading-tight sm:text-xl">{s.reachName}</p>
             <div className="mt-1.5 flex items-center gap-3 text-sm">
               <span>
-                <span className="font-semibold tabular-nums">{s.gusts}</span> gust
-                {s.gusts === 1 ? "" : "s"}
+                <span className="font-semibold tabular-nums">{s.gustsByReach[s.reach] ?? 0}</span>{" "}
+                gust{(s.gustsByReach[s.reach] ?? 0) === 1 ? "" : "s"}
+                <span className="opacity-70"> · par {s.par[s.reach]}</span>
               </span>
               <span
                 className="flex items-center gap-0.5"
@@ -209,7 +219,17 @@ export function App({ play }: { play: Play }) {
             {REACHES.map((name, i) => (
               <div key={name} className="rounded-xl bg-[var(--wash)] px-2 py-2">
                 <dt className="text-[11px] leading-tight opacity-70">{name}</dt>
-                <dd className="title text-xl">{s.gustsByReach[i] ?? 0}</dd>
+                <dd>
+                  <StarRow n={s.stars[i] ?? 0} label={`${s.stars[i] ?? 0} of 3 stars`} />
+                  <span className="block text-xs">
+                    {s.gustsByReach[i] ?? 0} gust{(s.gustsByReach[i] ?? 0) === 1 ? "" : "s"}, par{" "}
+                    {s.par[i]}
+                    {(s.rescuesByReach[i] ?? 0) > 0 ? ` · ${s.rescuesByReach[i]} duck` : ""}
+                  </span>
+                  <span className="block text-[11px] opacity-70">
+                    best {"★".repeat(s.best[i] ?? 0) || "–"}
+                  </span>
+                </dd>
               </div>
             ))}
           </dl>

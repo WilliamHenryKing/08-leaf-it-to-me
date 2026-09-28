@@ -42,6 +42,7 @@ export interface GameState {
   gusts: number;
   gustsByReach: number[];
   rescues: number;
+  rescuesByReach: number[];
   lanterns: boolean[];
   cooldown: number;
   pinned: number;
@@ -64,6 +65,7 @@ export function createState(course: Course): GameState {
     gusts: 0,
     gustsByReach: course.reaches.map(() => 0),
     rescues: 0,
+    rescuesByReach: course.reaches.map(() => 0),
     lanterns: course.lanterns.map(() => false),
     cooldown: 0,
     pinned: 0,
@@ -75,6 +77,7 @@ export function createState(course: Course): GameState {
 export const cloneState = (s: GameState): GameState => ({
   ...s,
   gustsByReach: [...s.gustsByReach],
+  rescuesByReach: [...s.rescuesByReach],
   lanterns: [...s.lanterns],
   events: [],
 });
@@ -231,6 +234,7 @@ export function rescue(course: Course, s: GameState) {
   s.heel = 0;
   s.pinned = 0;
   s.rescues++;
+  s.rescuesByReach[s.reach] = (s.rescuesByReach[s.reach] ?? 0) + 1;
   s.status = "sailing";
   s.events.push({ type: "rescued", reach: s.reach });
 }

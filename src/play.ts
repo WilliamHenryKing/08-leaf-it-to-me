@@ -3,6 +3,7 @@ import { createAudio } from "./audio/audio";
 import { playCues } from "./audio/cues";
 import { createCourse } from "./game/course";
 import { windAt } from "./game/field";
+import { mergeBest, PAR, parseBest, type Stars, starsFor } from "./game/score";
 import {
   applyGust,
   createState,
@@ -20,6 +21,22 @@ import { type Aim, createWorld } from "./scene/world";
 import { createStore } from "./ui/store";
 
 const HINT_KEY = "leaf-it-to-me:hint-seen";
+const BEST_KEY = "leaf-it-to-me:best-stars";
+
+function readBest(reaches: number) {
+  try {
+    return parseBest(window.localStorage.getItem(BEST_KEY), reaches);
+  } catch {
+    return parseBest(null, reaches);
+  }
+}
+function writeBest(best: Stars[]) {
+  try {
+    window.localStorage.setItem(BEST_KEY, JSON.stringify(best));
+  } catch {
+    // Private mode: the record lasts for this visit only.
+  }
+}
 /** Time runs slowly while a gust is being aimed, so choices can be deliberate. */
 const AIM_TIME_SCALE = 0.3;
 
@@ -64,7 +81,26 @@ export function createPlay(canvas: HTMLCanvasElement) {
     toast: null,
     hint: false,
     muted: audio.muted,
+    par: [...PAR],
+    stars: [],
+    best: readBest(course.reaches.length),
+    rescuesByReach: state.rescuesByReach,
   });
+  const starsOf = (reach: number) =>
+    starsFor(reach, state.gustsByReach[reach] ?? 0, state.rescuesByReach[reach] ?? 0);
+  const starText = (n: number) => "★".repeat(n) + "☆".repeat(3 - n);
+  /** Score a finished reach; after the last one, keep the best of this run and earlier ones. */
+  const completeReach = (reach: number) => {
+    const stars = [...store.get().stars];
+    stars[reach] = starsOf(reach);
+    store.set({ stars });
+    if (reach === course.reaches.length - 1) {
+      const best = mergeBest(store.get().best, stars);
+      writeBest(best);
+      store.set({ best });
+    }
+    return stars[reach] as Stars;
+  };
 
   const toast = (text: string) => store.set({ toast: { id: ++toastId, text } });
 
@@ -77,6 +113,7 @@ export function createPlay(canvas: HTMLCanvasElement) {
       gustsByReach: [...state.gustsByReach],
       lanterns: state.lanterns.filter(Boolean).length,
       rescues: state.rescues,
+      rescuesByReach: [...state.rescuesByReach],
       aim: aim
         ? {
             strength: aim.strength,
@@ -90,8 +127,14 @@ export function createPlay(canvas: HTMLCanvasElement) {
   const describe = (e: GameEvent) => {
     if (e.type === "gust" && e.spilled)
       toast("Too strong: the sail spilled the wind and soaked the coat.");
-    else if (e.type === "checkpoint")
-      toast(`Reach ${e.reach + 1} · ${course.reaches[e.reach]?.name}`);
+    else if (e.type === "checkpoint") {
+      const done = e.reach - 1;
+      const stars = completeReach(done);
+      const g = state.gustsByReach[done] ?? 0;
+      toast(
+        `${starText(stars)} ${g} gust${g === 1 ? "" : "s"}, par ${PAR[done]} · on to ${course.reaches[e.reach]?.name}`,
+      );
+    } else if (e.type === "finished") completeReach(course.reaches.length - 1);
     else if (e.type === "stranded") toast("Stuck fast. Here comes a duck…");
     else if (e.type === "rescued") toast("Quack. Set down in the last calm pool.");
     else if (e.type === "lantern") toast("A lantern for the gathering.");
@@ -188,6 +231,7 @@ export function createPlay(canvas: HTMLCanvasElement) {
     restart() {
       state = createState(course);
       aim = null;
+      store.set({ stars: [] });
       audio.setEnding(false);
       audio.setFocus(false);
       audio.play("click", 0.5);
