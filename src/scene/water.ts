@@ -22,7 +22,12 @@ export function createWater(course: Course) {
     roughness: 0.2,
     metalness: 0,
     transparent: true,
+    depthWrite: false,
   });
+  material.blending = THREE.CustomBlending;
+  material.blendSrc = THREE.OneFactor;
+  material.blendDst = THREE.OneMinusSrcAlphaFactor;
+  material.premultipliedAlpha = false;
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader
@@ -75,30 +80,35 @@ float s0 = texture2D(uNoise, vec2(fp.x * 0.9, (fp.y - along * ph0) * 0.09)).r;
 float s1 = texture2D(uNoise, vec2(fp.x * 0.9 + 0.5, (fp.y - along * ph1) * 0.09 + 0.3)).r;
 float sN = mix(s1, s0, w0);
 float streak = smoothstep(0.6, 0.78, sN) * (0.08 + fast * 0.9);
-vec3 deep = vec3(0.035, 0.085, 0.075);
-vec3 shallow = vec3(0.30, 0.30, 0.17);
-vec3 run = vec3(0.26, 0.36, 0.30);
-vec3 water = mix(shallow, deep, smoothstep(0.0, 0.75, depth));
-water = mix(water, run, fast * 0.55 + nA * 0.1);
+// Water itself has almost no albedo: only light scattered back by the water column (growing with
+// depth, teal-green), aeration where it runs fast, and foam. Everything else is reflection (the
+// environment, through the lighting below) and the bed seen through it.
+vec3 inscatter = vec3(0.006, 0.03, 0.026) * (0.25 + smoothstep(0.0, 0.8, depth));
+inscatter += vec3(0.03, 0.035, 0.03) * fast * (0.4 + 0.6 * nA);
 // Wind shadow and the tunnel's gloom.
-water *= mix(0.6, 1.0, fl.b);
-float edgeFoam = smoothstep(0.74, 0.97, edge) * smoothstep(0.45, 0.72, nB) * (0.35 + fast * 0.6);
+inscatter *= mix(0.6, 1.0, fl.b) * (1.0 - uGloom * 0.4);
+// Dusk sky and lantern light scattered in the open pond.
+inscatter += vec3(0.02, 0.012, 0.004) * uWarm;
+float edgeFoam = smoothstep(0.8, 0.98, edge) * smoothstep(0.5, 0.75, nB) * (0.12 + fast * 0.45);
 float foam = clamp(streak + edgeFoam, 0.0, 1.0);
-water = mix(water, vec3(0.86, 0.88, 0.8), foam);
-// Soft sun glints scattered on moving water.
-float glint = smoothstep(0.8, 0.93, nB * 0.6 + nA * 0.4) * (0.25 + fast * 0.5) * (1.0 - uGloom * 0.8);
-water += vec3(1.0, 0.86, 0.6) * glint * 0.35;
-water *= 1.0 - uGloom * 0.35;
-// Dusk sky and lantern light on the open pond.
-water += vec3(0.05, 0.035, 0.015) * uWarm * (0.6 + 0.4 * nA);
-diffuseColor.rgb = water;
-// Clear in the shallows (the bed shows through), opaque in the channels.
-diffuseColor.a = mix(0.42, 0.95, smoothstep(0.05, 0.6, depth)) + foam * 0.5;`,
+diffuseColor.rgb = mix(inscatter, vec3(0.8, 0.82, 0.76), foam);
+// How much of the bed the water hides: little in the shallows, more in deep or churned water.
+float turbid = mix(0.06, 0.62, smoothstep(0.05, 0.85, depth)) + fast * 0.12;
+`,
       )
       .replace(
         "#include <roughnessmap_fragment>",
         `#include <roughnessmap_fragment>
-roughnessFactor = mix(0.05, 0.3, fast) + foam * 0.45;`,
+roughnessFactor = mix(0.04, 0.2, fast) + foam * 0.5;`,
+      )
+      .replace(
+        "#include <opaque_fragment>",
+        `// Premultiplied: the surface adds its reflection and scatter; the bed behind is kept by
+// (1 - alpha), where alpha is the Fresnel reflectance, the turbidity and the foam.
+float wCos = saturate(dot(normal, normalize(vViewPosition)));
+float wFresnel = 0.02 + 0.98 * pow(1.0 - wCos, 5.0);
+float wAlpha = clamp(max(max(wFresnel, turbid), foam * 0.9), 0.0, 1.0);
+gl_FragColor = vec4(outgoingLight, wAlpha);`,
       )
       .replace(
         "#include <normal_fragment_maps>",
