@@ -94,6 +94,27 @@ export function createStones(assets: Assets) {
     });
     group.add(instanced(assets.boulders, boulders, rand, 0.3));
   }
+  if (assets.stump) {
+    // Three mossy stumps on the banks: trees felled long ago, towering at this scale.
+    for (const [u, y, h, spin] of [
+      [-8.5, 14, 3.4, 0.4],
+      [8.2, 57, 4.2, 2.1],
+      [-10.5, 90, 3.8, 4.4],
+    ] as [number, number, number, number][]) {
+      const stump = assets.stump.clone(true);
+      const box = new THREE.Box3().setFromObject(stump);
+      const k = h / Math.max(0.001, box.max.y - box.min.y);
+      const x = centreX(y) + u;
+      stump.scale.setScalar(k);
+      stump.position.set(x, bankHeight(x, y) - box.min.y * k - 0.2, -y);
+      stump.rotation.y = spin;
+      stump.traverse((o) => {
+        o.castShadow = true;
+        o.receiveShadow = true;
+      });
+      group.add(stump);
+    }
+  }
   return group;
 }
 

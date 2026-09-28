@@ -63,7 +63,7 @@ Nudge a curled-leaf boat down three reaches of one brook (the **Flooded Flowerpo
 
 ## Built with
 
-**three.js** (no React Three Fiber), **React 19** for the HUD, strict **TypeScript**, **Vite**, **GSAP**, **Tailwind CSS v4**, **Biome** and **Bun**, with **Playwright** for the end-to-end test. Every mesh, texture and shader is generated in code; there are no model or image assets.
+**three.js** (no React Three Fiber), **React 19** for the HUD, strict **TypeScript**, **Vite**, **GSAP**, **Tailwind CSS v4**, **Biome** and **Bun**, with **Playwright** for the end-to-end test. Rendering: AgX tone mapping applied once in an `OutputPass`, a CC0 river HDRI as image-based light, GTAO, thresholded bloom and SMAA, with a lighter tier for phones.
 
 Notable techniques:
 
@@ -84,7 +84,26 @@ Layout: `src/game/` pure rules, course data and scoring (unit-tested in `tests/`
 
 ## Credits
 
-All geometry, textures and shaders are generated in code for this project. The type uses system font stacks.
+The type uses system font stacks. Every shipped file is listed with its source, author, licence, retrieval date, sha256 and processing in [`assets.manifest.json`](assets.manifest.json) (about 9.8 MB in total).
+
+### Visuals
+
+The brook's environment light, ground, stones, bark and flowerpot are CC0 scans and textures from [Poly Haven](https://polyhaven.com), processed with gltf-transform (meshopt, WebP) and Pillow. The leaf boat, beetle, duck, toadstools, clover, reeds, grass, lily pads and effects are modelled and textured procedurally in code.
+
+| File(s) | Used for | Source | Author | Licence |
+| --- | --- | --- | --- | --- |
+| `env/river_walk_1_1k.hdr` | Environment light, reflections and sky (reaches 1–2) | https://polyhaven.com/a/river_walk_1 | Greg Zaal | CC0 |
+| `env/sunset_forest_1k.hdr` | Dusk environment at the Lantern Pond | https://polyhaven.com/a/sunset_forest | Andreas Mischok | CC0 |
+| `textures/clean_pebbles/*` | The river bed | https://polyhaven.com/a/clean_pebbles | Rob Tuytel | CC0 |
+| `textures/mud_forest/*` | Wet mud at the waterline, the tunnel overhang | https://polyhaven.com/a/mud_forest | Rob Tuytel | CC0 |
+| `textures/brown_mud_leaves_01/*` | Mossy leaf litter on the banks | https://polyhaven.com/a/brown_mud_leaves_01 | Rob Tuytel | CC0 |
+| `textures/bark_brown_02/*` | The branch, roots and raft | https://polyhaven.com/a/bark_brown_02 | Rob Tuytel | CC0 |
+| `models/rock_moss_set_01*.glb` | Rocks in the water, bank boulders | https://polyhaven.com/a/rock_moss_set_01 | Kless Gyzen | CC0 |
+| `models/rock_moss_set_02_lod.glb` | Pebbles on the bed and waterline | https://polyhaven.com/a/rock_moss_set_02 | Kless Gyzen | CC0 |
+| `models/planter_pot_clay.glb` | The flooded flowerpot | https://polyhaven.com/a/planter_pot_clay | Amal Kumar | CC0 |
+| `models/tree_stump_01.glb` | Mossy stumps on the banks | https://polyhaven.com/a/tree_stump_01 | Rob Tuytel | CC0 |
+
+The rendering approach (post-processing chain, HDRI environment, Fresnel water over a visible bed) was adapted from William King's earlier collection project ODD TIDE, with his permission.
 
 ### Audio
 
