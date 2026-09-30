@@ -3,6 +3,7 @@
 import * as THREE from "three";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { SceneLifetime } from "./lifetime";
 
 export interface PbrSet {
   map: THREE.Texture;
@@ -32,6 +33,19 @@ export interface Assets {
 }
 
 const base = `${import.meta.env.BASE_URL}`;
+const owners = new WeakMap<Assets, SceneLifetime>();
+
+export function assetsOwner(assets: Assets) {
+  let owner = owners.get(assets);
+  if (!owner) {
+    owner = new SceneLifetime();
+    owners.set(assets, owner);
+  }
+  return owner;
+}
+export function disposeAssets(assets: Assets) {
+  assetsOwner(assets).dispose();
+}
 
 /** Split a merged scan into its separate rocks (connected components of the index buffer). */
 /** Quantized glTF attributes (int16/int8, normalized) become plain floats before any editing. */
@@ -103,16 +117,30 @@ export function splitPieces(source: THREE.BufferGeometry): THREE.BufferGeometry[
     // Scanned normals are kept (smooth); only the bounds are recomputed.
     compact.computeBoundingSphere();
     pieces.push(compact);
+    g.dispose();
   }
-  return pieces.length ? pieces : [geo];
+  if (!pieces.length) return [geo];
+  geo.dispose();
+  return pieces;
 }
 
-async function loadSet(name: string, repeat = 1): Promise<PbrSet | null> {
+async function loadSet(owner: SceneLifetime, name: string, repeat = 1): Promise<PbrSet | null> {
   const loader = new THREE.TextureLoader();
   const url = (kind: string) => `${base}textures/${name}/${name}_${kind}_1k.webp`;
   try {
-    const [map, normalMap, arm] = await Promise.all(
-      ["diff", "nor_gl", "arm"].map((k) => loader.loadAsync(url(k))),
+    const loaded = await Promise.allSettled(
+      ["diff", "nor_gl", "arm"].map((k) =>
+        loader.loadAsync(url(k)).then((texture) => owner.resources.own(texture)),
+      ),
+    );
+    owner.assertAlive();
+    if (loaded.some((result) => result.status === "rejected")) {
+      for (const result of loaded)
+        if (result.status === "fulfilled") owner.resources.release(result.value);
+      return null;
+    }
+    const [map, normalMap, arm] = loaded.map((result) =>
+      result.status === "fulfilled" ? result.value : null,
     );
     if (!map || !normalMap || !arm) return null;
     map.colorSpace = THREE.SRGBColorSpace;
@@ -124,17 +152,26 @@ async function loadSet(name: string, repeat = 1): Promise<PbrSet | null> {
     }
     return { map, normalMap, arm };
   } catch {
+    owner.assertAlive();
     return null;
   }
 }
 
-async function loadModel(file: string): Promise<THREE.Object3D | null> {
+async function loadModel(owner: SceneLifetime, file: string): Promise<THREE.Object3D | null> {
   const loader = new GLTFLoader();
   loader.setMeshoptDecoder(MeshoptDecoder);
   try {
-    const gltf = await loader.loadAsync(`${base}models/${file}`);
+    const url = `${base}models/${file}`;
+    const response = await fetch(url, { signal: owner.signal });
+    if (!response.ok) return null;
+    const bytes = await response.arrayBuffer();
+    owner.assertAlive();
+    const gltf = await loader.parseAsync(bytes, url.slice(0, url.lastIndexOf("/") + 1));
+    owner.resources.tree(gltf.scene);
+    owner.assertAlive();
     return gltf.scene;
   } catch {
+    owner.assertAlive();
     return null;
   }
 }
@@ -147,36 +184,49 @@ function firstMesh(root: THREE.Object3D | null) {
   return found as THREE.Mesh | null;
 }
 
-function rockSet(root: THREE.Object3D | null): RockSet | null {
+function rockSet(owner: SceneLifetime, root: THREE.Object3D | null): RockSet | null {
   const mesh = firstMesh(root);
   if (!mesh) return null;
   const material = (mesh.material as THREE.MeshStandardMaterial).clone();
+  owner.resources.material(material);
   material.side = THREE.FrontSide;
   const pieces = splitPieces(mesh.geometry);
+  for (const piece of pieces) owner.resources.own(piece);
   return { pieces, material };
 }
 
-export async function loadAssets(): Promise<Assets> {
-  const [bed, mud, leaves, bark, rocks, boulders, pebbles, pot, stump] = await Promise.all([
-    loadSet("clean_pebbles"),
-    loadSet("mud_forest"),
-    loadSet("brown_mud_leaves_01"),
-    loadSet("bark_brown_02"),
-    loadModel("rock_moss_set_01.glb"),
-    loadModel("rock_moss_set_01_lod.glb"),
-    loadModel("rock_moss_set_02_lod.glb"),
-    loadModel("planter_pot_clay.glb"),
-    loadModel("tree_stump_01.glb"),
-  ]);
-  return {
-    bed,
-    mud,
-    leaves,
-    bark,
-    rocks: rockSet(rocks),
-    boulders: rockSet(boulders),
-    pebbles: rockSet(pebbles),
-    pot,
-    stump,
-  };
+export async function loadAssets(signal?: AbortSignal): Promise<Assets> {
+  const owner = new SceneLifetime(signal);
+  owner.assertAlive();
+  try {
+    const [bed, mud, leaves, bark, rocks, boulders, pebbles, pot, stump] = await owner.wait(
+      Promise.all([
+        loadSet(owner, "clean_pebbles"),
+        loadSet(owner, "mud_forest"),
+        loadSet(owner, "brown_mud_leaves_01"),
+        loadSet(owner, "bark_brown_02"),
+        loadModel(owner, "rock_moss_set_01.glb"),
+        loadModel(owner, "rock_moss_set_01_lod.glb"),
+        loadModel(owner, "rock_moss_set_02_lod.glb"),
+        loadModel(owner, "planter_pot_clay.glb"),
+        loadModel(owner, "tree_stump_01.glb"),
+      ]),
+    );
+    const assets: Assets = {
+      bed,
+      mud,
+      leaves,
+      bark,
+      rocks: rockSet(owner, rocks),
+      boulders: rockSet(owner, boulders),
+      pebbles: rockSet(owner, pebbles),
+      pot,
+      stump,
+    };
+    owners.set(assets, owner);
+    return assets;
+  } catch (error) {
+    owner.dispose();
+    throw error;
+  }
 }

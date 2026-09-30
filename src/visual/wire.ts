@@ -20,9 +20,9 @@ export interface VisualHost {
 export function wireVisualTest(host: VisualHost) {
   if (!visualTestEnabled()) return;
   const { world, course } = host;
-  installVisualTest({
+  return installVisualTest({
     renderer: world.stage.renderer,
-    loaded: world.stage.ready,
+    loaded: world.ready,
     scene: world.stage.scene,
     camera: world.stage.camera,
     apply(id) {

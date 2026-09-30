@@ -11,8 +11,8 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL: "http://127.0.0.1:4618",
-    // Small, so software rendering keeps up.
-    viewport: { width: 480, height: 360 },
+    // Desktop default; touch regressions use their own bounded phone contexts.
+    viewport: { width: 1280, height: 800 },
     launchOptions: {
       args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
     },

@@ -28,6 +28,7 @@ export function createWater(course: Course) {
   material.blendSrc = THREE.OneFactor;
   material.blendDst = THREE.OneMinusSrcAlphaFactor;
   material.premultipliedAlpha = false;
+  material.userData.shaderUniforms = uniforms;
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader

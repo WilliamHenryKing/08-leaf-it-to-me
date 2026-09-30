@@ -34,6 +34,7 @@ void main() {
 };
 
 export interface Pipeline {
+  dispose: () => void;
   composer: EffectComposer;
   /** Transparent or effect-only objects the AO G-buffer must not see (water, streaks, glows). */
   hideFromAO: (o: THREE.Object3D) => void;
@@ -156,7 +157,9 @@ void main() {
   let average = 1 / 60;
   let scale = 1;
   let rescale = () => {};
+  let disposed = false;
   const step = () => {
+    if (disposed) return false;
     if (ao?.enabled) {
       ao.enabled = false;
       return true;
@@ -173,7 +176,7 @@ void main() {
     return false;
   };
   const adapt = (frameSeconds: number) => {
-    if (frameSeconds <= 0 || spent) return steps;
+    if (disposed || frameSeconds <= 0 || spent) return steps;
     average += (Math.min(frameSeconds, 0.25) - average) * 0.1;
     // 19 ms, not 1/60 s: on a 60 Hz display the average hovers at 16.7 ms and jitter alone
     // would read as slow.
@@ -187,6 +190,17 @@ void main() {
   };
 
   return {
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      rescale = () => {};
+      aoHidden.length = 0;
+      for (const pass of composer.passes) pass.dispose();
+      ao?.gtaoMaterial.dispose();
+      ao?.blendMaterial.dispose();
+      bloom.materialHighPassFilter.dispose();
+      composer.dispose();
+    },
     adapt,
     step,
     scale: () => scale,
@@ -203,12 +217,15 @@ void main() {
     composer,
     hideFromAO: (o) => aoHidden.push(o),
     setSize(w, h, pixelRatio) {
+      if (disposed) return;
       composer.setPixelRatio(pixelRatio);
       composer.setSize(w, h);
       ao?.setSize(w * pixelRatio, h * pixelRatio);
       const bloomScale = tier === "high" ? 1 : 0.5;
       bloom.setSize(w * pixelRatio * bloomScale, h * pixelRatio * bloomScale);
     },
-    render: () => composer.render(),
+    render: () => {
+      if (!disposed) composer.render();
+    },
   };
 }

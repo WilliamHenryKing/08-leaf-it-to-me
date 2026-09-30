@@ -32,10 +32,11 @@ Nudge a curled-leaf boat down three reaches of one brook (the **Flooded Flowerpo
 | Mute / unmute | Speaker button | `M` |
 | Controls again / restart | `?` / `↺` buttons | |
 
-- **Time slows while you aim**, and a dotted line shows exactly where the leaf will go.
+- **Time slows while you aim**, and a dotted line previews the next three seconds, including gust cooldown. Drag on the water; return to the starting point or cancel the drag to keep sailing without a gust.
 - **Read the water.** Long, bright foam streaks mean fast water, faint ones slack water, and curling lines an eddy. Clear shallows show the gravel bed, and shade under clover, roots and reeds is a **wind shadow**, where gusts barely reach the sail.
 - **Stronger isn't always better.** A gust from behind fills the petal sail best; past about 70% the sail spills the wind and soaks the beetle.
 - **Every reach has two passages**: the fast chute or the sheltered lane past the flowerpot; under the root or round the outside; the pond's gyre or straight across to the gathering.
+- The skippable opening holds the boat until the camera arrives. The four-step guide waits for your first aim and gust, then explains the current and stars. `?` replays help for the current reach.
 - **Par is 2 gusts per reach.** Beat it for ★★★, and your best stars are saved in your browser. Get stuck and a duck carries you back to the last calm pool, but it costs you two gusts.
 
 ## What's inside
@@ -77,7 +78,7 @@ Notable techniques:
 bun install
 bun run dev      # http://127.0.0.1:4518/
 bun run check    # strict tsc, Biome, bun test, production build into dist/
-bun run e2e      # optional: Playwright sails reach 1 headless (run `bunx playwright install chromium` once)
+bun run e2e      # both full routes, rescue/replay, touch/input and loading recovery
 ```
 
 Layout: `src/game/` pure rules, course data and scoring (unit-tested in `tests/`); `src/scene/` the three.js world, effects and input; `src/audio/` sound; `src/ui/` the React HUD; `src/play.ts` and `src/main.tsx` the wiring; `e2e/` the end-to-end test.

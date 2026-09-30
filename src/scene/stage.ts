@@ -3,6 +3,7 @@
 // of the post-processing chain (see pipeline.ts). Exposure is the only brightness control.
 import * as THREE from "three";
 import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader.js";
+import { SceneLifetime } from "./lifetime";
 import { createPipeline, type Pipeline } from "./pipeline";
 
 export const PALETTE = {
@@ -59,6 +60,10 @@ export interface Stage {
   ready: Promise<void>;
   skies: { day: Sky | null; dusk: Sky | null };
   resize: () => void;
+  /** Fractions reserved by the gameplay HUD; title/capture composition remains independent. */
+  insets: { top: number; bottom: number; left: number; right: number };
+  prepareFrame: () => void;
+  dispose: () => void;
   /** Keep the shadow frustum centred on what the camera sees, snapped to whole texels. */
   follow: (target: THREE.Vector3) => void;
   portrait: () => boolean;
@@ -91,7 +96,13 @@ function horizonColour(tex: THREE.DataTexture) {
   return c.multiplyScalar(1 / Math.max(1, n));
 }
 
-export function createStage(canvas: HTMLCanvasElement): Stage {
+export function createStage(canvas: HTMLCanvasElement, owner = new SceneLifetime()): Stage {
+  owner.assertAlive();
+  let disposed = false;
+  let warmed = false;
+  let pendingSize = true;
+  let width = 1;
+  let height = 1;
   const tier = pickTier();
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -144,48 +155,62 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   const pipeline = createPipeline(renderer, scene, camera, tier, tier === "high" && modestGpu());
 
   // The two skies: a green woodland river for the brook, a low forest sun for the pond at dusk.
-  const pmrem = new THREE.PMREMGenerator(renderer);
   const skies: Stage["skies"] = { day: null, dusk: null };
   const loader = new HDRLoader();
   const base = `${import.meta.env.BASE_URL}env/`;
   const load = (file: string) =>
     loader.loadAsync(base + file).then((tex: THREE.DataTexture): Sky => {
+      owner.resources.own(tex);
+      owner.assertAlive();
       tex.mapping = THREE.EquirectangularReflectionMapping;
-      const env = pmrem.fromEquirectangular(tex).texture;
-      return { env, background: tex, horizon: horizonColour(tex) };
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      try {
+        const target = owner.resources.own(pmrem.fromEquirectangular(tex));
+        return { env: target.texture, background: tex, horizon: horizonColour(tex) };
+      } finally {
+        pmrem.dispose();
+      }
     });
   // The day sky comes first; the dusk sky is only needed at the pond, so it follows after.
-  let dayIn: () => void = () => {};
-  const dayReady = new Promise<void>((done) => {
-    dayIn = done;
-  });
-  const ready = load("river_walk_1_1k.hdr")
-    .then((day) => {
-      skies.day = day;
-      scene.environment = day.env;
-      scene.background = day.background;
-      dayIn();
-      return load("sunset_forest_1k.hdr");
-    })
-    .then((dusk) => {
-      skies.dusk = dusk;
-    })
-    .catch(() => {
-      // Without the HDRIs the scene still renders by sun and fog alone.
-    })
-    .finally(() => dayIn());
+  const ready = owner.wait(
+    (async () => {
+      try {
+        const day = await load("river_walk_1_1k.hdr");
+        skies.day = day;
+        scene.environment = day.env;
+        scene.background = day.background;
+      } catch {
+        owner.assertAlive();
+      }
+      try {
+        skies.dusk = await load("sunset_forest_1k.hdr");
+      } catch {
+        owner.assertAlive();
+      }
+      owner.assertAlive();
+    })(),
+  );
+  void ready.catch(() => {});
 
   const portrait = () => canvas.clientWidth / Math.max(1, canvas.clientHeight) < 0.8;
 
   const resize = () => {
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
-    renderer.setPixelRatio(pixelRatio());
-    renderer.setSize(w, h, false);
-    pipeline.setSize(w, h, renderer.getPixelRatio());
+    if (disposed) return;
+    const w = Math.max(1, canvas.clientWidth || window.innerWidth);
+    const h = Math.max(1, canvas.clientHeight || window.innerHeight);
+    width = w;
+    height = h;
+    pendingSize = true;
     camera.aspect = w / Math.max(1, h);
     camera.fov = portrait() ? 58 : 42;
     camera.updateProjectionMatrix();
+  };
+  const prepareFrame = () => {
+    if (disposed || !pendingSize) return;
+    pendingSize = false;
+    renderer.setPixelRatio(pixelRatio());
+    renderer.setSize(width, height, false);
+    pipeline.setSize(width, height, renderer.getPixelRatio());
   };
 
   // A late-afternoon sun from upstream-left, fixed in direction.
@@ -194,6 +219,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   const up = new THREE.Vector3().crossVectors(right, toSun).normalize();
   const snapped = new THREE.Vector3();
   const follow = (target: THREE.Vector3) => {
+    if (disposed) return;
     // Snap the frustum centre to the shadow texel grid so edges do not crawl as the boat moves.
     const r = Math.round(target.dot(right) / texel) * texel;
     const u = Math.round(target.dot(up) / texel) * texel;
@@ -205,23 +231,44 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
 
   pipeline.onScale(resize);
 
-  const precompile = async () => {
-    await dayReady;
-    const previous = renderer.getRenderTarget();
-    renderer.setRenderTarget(pipeline.composer.readBuffer);
-    const compiling = renderer.compileAsync(scene, camera);
-    renderer.setRenderTarget(previous);
-    await compiling;
-    const culled: THREE.Object3D[] = [];
-    scene.traverse((o) => {
-      if (o.frustumCulled) {
-        o.frustumCulled = false;
-        culled.push(o);
-      }
-    });
-    pipeline.render();
-    for (const o of culled) o.frustumCulled = true;
+  let preparing: Promise<void> | null = null;
+  const precompile = () => {
+    if (preparing) return preparing;
+    preparing = owner.wait(
+      (async () => {
+        await ready;
+        owner.assertAlive();
+        prepareFrame();
+        const previous = renderer.getRenderTarget();
+        let compiling: Promise<unknown>;
+        try {
+          renderer.setRenderTarget(pipeline.composer.readBuffer);
+          compiling = renderer.compileAsync(scene, camera);
+        } finally {
+          renderer.setRenderTarget(previous);
+        }
+        await owner.wait(compiling);
+        owner.assertAlive();
+        const culled: THREE.Object3D[] = [];
+        try {
+          scene.traverse((o) => {
+            if (o.frustumCulled) {
+              o.frustumCulled = false;
+              culled.push(o);
+            }
+          });
+          pipeline.render();
+          warmed = true;
+        } finally {
+          for (const o of culled) o.frustumCulled = true;
+        }
+      })(),
+    );
+    void preparing.catch(() => {});
+    return preparing;
   };
+
+  resize();
 
   return {
     renderer,
@@ -232,10 +279,29 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     pipeline,
     ready,
     skies,
+    insets: { top: 0, bottom: 0, left: 0, right: 0 },
     resize,
+    prepareFrame,
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      owner.resources.tree(scene);
+      scene.environment = null;
+      scene.background = null;
+      owner.dispose();
+      pipeline.dispose();
+      scene.clear();
+      skies.day = skies.dusk = null;
+      renderer.dispose();
+    },
     follow,
     portrait,
-    render: () => pipeline.render(),
+    render: () => {
+      if (!disposed && warmed) {
+        prepareFrame();
+        pipeline.render();
+      }
+    },
     precompile,
   };
 }

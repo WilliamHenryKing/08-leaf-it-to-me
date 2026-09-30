@@ -14,6 +14,7 @@ export interface RescueContext {
   boat: THREE.Object3D;
   fx: Fx;
   dur: (s: number) => number;
+  still?: boolean;
 }
 
 export function playRescue(ctx: RescueContext, onDone: () => void) {
@@ -26,12 +27,19 @@ export function playRescue(ctx: RescueContext, onDone: () => void) {
   d.position.set(from.x + side * 6, 0, from.z - 3);
   d.lookAt(from.x, 0, from.z);
   d.rotateY(Math.PI);
-  const tl = gsap.timeline({
-    onComplete: () => {
-      d.visible = false;
-      onDone();
-    },
+  let settled = false;
+  let resolve: (completed: boolean) => void = () => {};
+  const completed = new Promise<boolean>((done) => {
+    resolve = done;
   });
+  const complete = () => {
+    if (settled) return;
+    settled = true;
+    d.visible = false;
+    resolve(true);
+    onDone();
+  };
+  const tl = gsap.timeline({ paused: true, onComplete: complete });
   const toPool = toWorld(pool.x, pool.y);
   tl.to(d.position, {
     x: from.x + side * 1.7,
@@ -39,7 +47,9 @@ export function playRescue(ctx: RescueContext, onDone: () => void) {
     duration: dur(0.8),
     ease: "power2.out",
   })
-    .add(() => fx.splash(boat.position.clone().setY(0.2), 10, 1.2))
+    .add(() => {
+      if (!ctx.still) fx.splash(boat.position.clone().setY(0.2), 10, 1.2);
+    })
     .to(boat.position, { y: 1.2, duration: dur(0.3), ease: "back.out(2)" })
     .to(
       d.position,
@@ -54,7 +64,9 @@ export function playRescue(ctx: RescueContext, onDone: () => void) {
     )
     .to(boat.position, { x: toPool.x, z: toPool.z, duration: dur(1.1), ease: "sine.inOut" }, "<")
     .to(boat.position, { y: 0.01, duration: dur(0.3), ease: "bounce.out" })
-    .add(() => fx.bigSplash(boat.position))
+    .add(() => {
+      if (!ctx.still) fx.bigSplash(boat.position);
+    })
     .to(d.position, {
       x: toPool.x + side * 9,
       y: 0,
@@ -62,4 +74,25 @@ export function playRescue(ctx: RescueContext, onDone: () => void) {
       duration: dur(0.8),
       ease: "power1.in",
     });
+  const motion = {
+    completed,
+    finish() {
+      if (settled) return;
+      tl.totalProgress(1, false);
+      boat.position.copy(toPool).setY(0.01);
+      complete();
+    },
+    cancel() {
+      if (settled) return;
+      settled = true;
+      tl.kill();
+      d.visible = false;
+      resolve(false);
+    },
+  };
+  if (ctx.still) motion.finish();
+  else tl.play();
+  return motion;
 }
+
+export type RescueMotion = ReturnType<typeof playRescue>;

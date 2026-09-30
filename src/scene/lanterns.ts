@@ -175,6 +175,9 @@ export function createLanterns(course: Course, bark: PbrSet | null = null) {
       light.intensity = 1.5 + k * 1.2;
     },
     reset() {
+      guests.forEach((guest) => {
+        guest.position.y = 0.19;
+      });
       for (const f of floating) {
         f.visible = true;
         f.scale.setScalar(1);

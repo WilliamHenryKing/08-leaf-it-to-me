@@ -126,6 +126,20 @@ export function createFx() {
   group.add(drops);
 
   return {
+    reset() {
+      arrow.visible = dots.visible = drops.visible = false;
+      for (const drop of dp) drop.life = 0;
+      for (const wind of winds) {
+        wind.userData.age = 99;
+        (wind.material as THREE.MeshBasicMaterial).opacity = 0;
+      }
+      for (const ring of rings) {
+        ring.userData.age = 99;
+        (ring.material as THREE.MeshBasicMaterial).opacity = 0;
+      }
+      crown.userData.age = 99;
+      (crown.material as THREE.MeshBasicMaterial).opacity = 0;
+    },
     group,
     update(dt: number) {
       for (const w of winds) {

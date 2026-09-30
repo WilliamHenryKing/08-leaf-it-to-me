@@ -12,7 +12,7 @@ export const GUST_POWER = 4.5;
 export const SPILL_AT = 0.7;
 /** Seconds pinned against something before the duck comes. */
 export const STRAND_TIME = 2.2;
-const STEP = 1 / 60;
+export const FIXED_DT = 1 / 60;
 
 export type Status = "intro" | "sailing" | "stranded" | "finished";
 
@@ -38,6 +38,8 @@ export interface GameState {
   /** 0..1: how soaked the beetle's coat is. */
   wet: number;
   time: number;
+  /** Unsimulated fraction of a fixed tick, retained across render frames. */
+  stepRemainder: number;
   reach: number;
   gusts: number;
   gustsByReach: number[];
@@ -61,6 +63,7 @@ export function createState(course: Course): GameState {
     heel: 0,
     wet: 0,
     time: 0,
+    stepRemainder: 0,
     reach: 0,
     gusts: 0,
     gustsByReach: course.reaches.map(() => 0),
@@ -151,7 +154,29 @@ function collide(course: Course, s: GameState) {
     const dy = s.y - c.y;
     const d = Math.hypot(dx, dy);
     const min = o.r + BOAT_RADIUS;
-    if (d < min && d > 1e-6) resolve(dx / d, dy / d, min - d);
+    if (d >= min) continue;
+    if (d > 1e-6) {
+      resolve(dx / d, dy / d, min - d);
+      continue;
+    }
+    // At a circle's centre or directly on a branch, distance cannot supply a normal.
+    // Choose the branch's perpendicular, or oppose motion for a round obstacle.
+    let nx = 0;
+    let ny = -1;
+    const length = o.shape === "capsule" ? Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) : 0;
+    const speed = Math.hypot(s.vx, s.vy);
+    if (o.shape === "capsule" && length > 1e-6) {
+      nx = (o.b.y - o.a.y) / length;
+      ny = -(o.b.x - o.a.x) / length;
+      if (s.vx * nx + s.vy * ny > 0) {
+        nx = -nx;
+        ny = -ny;
+      }
+    } else if (speed > 1e-6) {
+      nx = -s.vx / speed;
+      ny = -s.vy / speed;
+    }
+    resolve(nx, ny, min + d);
   }
   const hw = halfWidth(s.y) - BOAT_RADIUS;
   const u = s.x - centreX(s.y);
@@ -214,12 +239,13 @@ function tick(course: Course, s: GameState, dt: number) {
 
 /** Advance the game by dt seconds in fixed steps. Events accumulate in s.events. */
 export function step(course: Course, s: GameState, dt: number) {
-  let left = Math.min(dt, 0.25);
-  while (left > 1e-9 && s.status === "sailing") {
-    const h = Math.min(STEP, left);
-    tick(course, s, h);
-    left -= h;
+  if (s.status !== "sailing" || !Number.isFinite(dt) || dt <= 0) return;
+  s.stepRemainder += Math.min(dt, 0.25);
+  while (s.stepRemainder + 1e-10 >= FIXED_DT && s.status === "sailing") {
+    s.stepRemainder = Math.max(0, s.stepRemainder - FIXED_DT);
+    tick(course, s, FIXED_DT);
   }
+  if (s.status !== "sailing") s.stepRemainder = 0;
 }
 
 /** The duck lifts a stranded boat to the pool at the start of its current reach. */
@@ -233,6 +259,9 @@ export function rescue(course: Course, s: GameState) {
   s.heading = 0;
   s.heel = 0;
   s.pinned = 0;
+  s.inContact = false;
+  s.cooldown = 0;
+  s.stepRemainder = 0;
   s.rescues++;
   s.rescuesByReach[s.reach] = (s.rescuesByReach[s.reach] ?? 0) + 1;
   s.status = "sailing";
@@ -248,13 +277,20 @@ export function predict(
   every = 0.1,
 ) {
   const p = cloneState(s);
-  p.status = "sailing";
-  p.cooldown = 0;
-  if (gust) applyGust(course, p, gust.angle, gust.strength);
   const points: { x: number; y: number }[] = [{ x: p.x, y: p.y }];
-  for (let t = 0; t < seconds && p.status === "sailing"; t += every) {
-    step(course, p, every);
-    points.push({ x: p.x, y: p.y });
+  if (p.status !== "sailing" || !Number.isFinite(seconds) || seconds <= 0)
+    return { points, status: p.status };
+  if (gust) applyGust(course, p, gust.angle, gust.strength);
+  const interval = Number.isFinite(every) && every > 0 ? every : 0.1;
+  let nextSample = interval;
+  const ticks = Math.ceil(seconds / FIXED_DT);
+  for (let tick = 1; tick <= ticks && p.status === "sailing"; tick++) {
+    const elapsed = Math.min(seconds, tick * FIXED_DT);
+    step(course, p, Math.min(FIXED_DT, seconds - (tick - 1) * FIXED_DT));
+    if (elapsed + 1e-10 >= nextSample || tick === ticks || p.status !== "sailing") {
+      points.push({ x: p.x, y: p.y });
+      nextSample += interval;
+    }
   }
   return { points, status: p.status };
 }

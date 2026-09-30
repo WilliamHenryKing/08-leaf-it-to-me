@@ -18,6 +18,12 @@ const FILES = {
   aim: "aim.mp3",
 } as const;
 type Sound = keyof typeof FILES;
+interface Voice {
+  sources: AudioScheduledSourceNode[];
+  nodes: AudioNode[];
+  at: number;
+  loop: boolean;
+}
 
 function readMuted() {
   try {
@@ -40,14 +46,66 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
   const raw = new Map<Sound, Promise<ArrayBuffer | null>>();
   const buffers = new Map<Sound, AudioBuffer>();
   const loops: { stop: () => void }[] = [];
+  const voices = new Set<Voice>();
+  const nodes = new Set<AudioNode>();
+  const lifetime = new AbortController();
+  let disposed = false;
+  let aiming = false;
+  let ending = false;
+  let waterLevel = 0.55;
+  let pond = false;
+
+  const own = <T extends AudioNode>(node: T): T => {
+    nodes.add(node);
+    return node;
+  };
+  const release = (voice: Voice, stop = true) => {
+    if (!voices.delete(voice)) return;
+    for (const source of voice.sources) {
+      source.onended = null;
+      if (stop) {
+        try {
+          source.stop();
+        } catch {
+          /* Already ended. */
+        }
+      }
+      source.disconnect();
+    }
+    for (const node of voice.nodes) node.disconnect();
+  };
+  const track = (
+    sources: AudioScheduledSourceNode[],
+    graph: AudioNode[],
+    at: number,
+    looped = false,
+  ) => {
+    const voice: Voice = { sources, nodes: graph, at, loop: looped };
+    voices.add(voice);
+    let ended = 0;
+    for (const source of sources)
+      source.onended = () => {
+        if (++ended === sources.length) release(voice, false);
+      };
+  };
+  const musicLevel = () => (ending ? 0.22 : aiming ? 0.14 : 0.3);
+  const refreshMusic = (seconds: number) => {
+    if (!disposed && ctx && music)
+      music.gain.setTargetAtTime(musicLevel(), ctx.currentTime, seconds);
+  };
+  const cancelPending = () => {
+    if (!ctx) return;
+    for (const voice of voices) if (!voice.loop && voice.at >= ctx.currentTime) release(voice);
+  };
 
   /** Fetch the files early (after the world is ready); decoding waits for the context. */
   function preload() {
+    if (disposed) return;
     for (const [k, f] of Object.entries(FILES) as [Sound, string][]) {
       if (!raw.has(k))
         raw.set(
           k,
-          fetch(base + f)
+          fetch(base + f, { signal: lifetime.signal })
             .then((r) => (r.ok ? r.arrayBuffer() : null))
             .catch(() => null),
         );
@@ -59,9 +117,10 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
     await Promise.all(
       [...raw].map(async ([k, p]) => {
         const data = await p;
-        if (!data) return;
+        if (!data || disposed) return;
         try {
-          buffers.set(k, await c.decodeAudioData(data.slice(0)));
+          const buffer = await c.decodeAudioData(data.slice(0));
+          if (!disposed && ctx === c) buffers.set(k, buffer);
         } catch {
           // An undecodable file only silences that one sound.
         }
@@ -69,8 +128,9 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
     );
   }
 
-  const gain = (c: AudioContext, v: number, to: AudioNode) => {
+  const gain = (c: AudioContext, v: number, to: AudioNode, persistent = false) => {
     const g = c.createGain();
+    if (persistent) own(g);
     g.gain.value = v;
     g.connect(to);
     return g;
@@ -80,7 +140,8 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
   function loop(name: Sound, bus: GainNode, fade = 3) {
     const c = ctx;
     const buf = buffers.get(name);
-    if (!c || !buf) return;
+    if (!c || !buf || disposed || buf.duration <= 0.1) return;
+    fade = Math.min(fade, buf.duration * 0.25);
     let next = c.currentTime + 0.05;
     let stopped = false;
     const playOnce = (at: number) => {
@@ -92,12 +153,15 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
       g.gain.setValueAtTime(1, at + buf.duration - fade);
       g.gain.linearRampToValueAtTime(0, at + buf.duration);
       src.connect(g).connect(bus);
+      track([src], [g], at, true);
       src.start(at);
       src.stop(at + buf.duration + 0.05);
     };
     const tick = () => {
-      if (stopped) return;
-      while (next < c.currentTime + 4) {
+      if (stopped || disposed) return;
+      if (next < c.currentTime) next = c.currentTime + 0.05;
+      let scheduled = 0;
+      while (next < c.currentTime + 4 && scheduled++ < 8) {
         playOnce(next);
         next += buf.duration - fade;
       }
@@ -115,12 +179,15 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
   function play(name: Sound, volume = 1, rate = 1, delay = 0) {
     const c = ctx;
     const buf = buffers.get(name);
-    if (!c || !sfx || !buf || muted) return;
+    if (!c || !sfx || !buf || muted || disposed || document.hidden) return;
     const src = c.createBufferSource();
     src.buffer = buf;
     src.playbackRate.value = rate;
-    src.connect(gain(c, volume, sfx));
-    src.start(c.currentTime + delay);
+    const level = gain(c, volume, sfx);
+    src.connect(level);
+    const at = c.currentTime + delay;
+    track([src], [level], at);
+    src.start(at);
   }
 
   function noiseBuffer(c: AudioContext) {
@@ -134,7 +201,7 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
   /** A breath of wind: band-passed noise that swells and sweeps with the gust. */
   function whoosh(strength: number) {
     const c = ctx;
-    if (!c || !sfx || muted) return;
+    if (!c || !sfx || muted || disposed || document.hidden) return;
     const t = c.currentTime;
     const dur = 0.45 + strength * 0.6;
     const src = c.createBufferSource();
@@ -150,6 +217,7 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
     g.gain.exponentialRampToValueAtTime(0.25 + strength * 0.55, t + dur * 0.25);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     src.connect(bp).connect(g).connect(sfx);
+    track([src], [bp, g], t);
     src.start(t, Math.random());
     src.stop(t + dur + 0.05);
   }
@@ -157,7 +225,7 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
   /** "Qua-ack": a nasal sawtooth through two vowel formants, pitch falling. */
   function quack(delay = 0) {
     const c = ctx;
-    if (!c || !sfx || muted) return;
+    if (!c || !sfx || muted || disposed || document.hidden) return;
     const t = c.currentTime + delay;
     const out = gain(c, 0.0001, sfx);
     const osc = c.createOscillator();
@@ -165,6 +233,7 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
     osc.frequency.setValueAtTime(420, t);
     osc.frequency.linearRampToValueAtTime(330, t + 0.08);
     osc.frequency.linearRampToValueAtTime(250, t + 0.24);
+    const graph: AudioNode[] = [out];
     for (const [f, q, v] of [
       [900, 6, 1],
       [1700, 8, 0.6],
@@ -173,7 +242,9 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
       bp.type = "bandpass";
       bp.frequency.value = f;
       bp.Q.value = q;
-      osc.connect(bp).connect(gain(c, v, out));
+      const level = gain(c, v, out);
+      osc.connect(bp).connect(level);
+      graph.push(bp, level);
     }
     out.gain.setValueAtTime(0.0001, t);
     out.gain.exponentialRampToValueAtTime(0.9, t + 0.02);
@@ -181,16 +252,19 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
     out.gain.exponentialRampToValueAtTime(0.35, t + 0.1);
     out.gain.exponentialRampToValueAtTime(0.8, t + 0.14);
     out.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+    track([osc], graph, t);
     osc.start(t);
     osc.stop(t + 0.3);
   }
 
   const setMaster = () => {
-    if (ctx && master) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.08);
+    if (!disposed && ctx && master)
+      master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.08);
   };
 
   /** Create the context on a user gesture and start the beds. Safe to call repeatedly. */
   async function unlock() {
+    if (disposed) return;
     if (ctx) {
       if (ctx.state === "suspended" && !document.hidden) await ctx.resume().catch(() => {});
       return;
@@ -199,26 +273,44 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
     if (!Ctor) return;
     const c = new Ctor();
     ctx = c;
-    const comp = c.createDynamicsCompressor();
+    const comp = own(c.createDynamicsCompressor());
     comp.connect(c.destination);
-    master = gain(c, 0, comp);
-    music = gain(c, 0.3, master);
-    ambience = gain(c, 0.6, master);
-    river = gain(c, 0.55, ambience);
-    birds = gain(c, 0.3, ambience);
-    sfx = gain(c, 0.85, master);
+    master = gain(c, 0, comp, true);
+    music = gain(c, musicLevel(), master, true);
+    ambience = gain(c, 0.6, master, true);
+    river = gain(c, waterLevel, ambience, true);
+    birds = gain(c, pond ? 0.55 : 0.3, ambience, true);
+    sfx = gain(c, 0.85, master, true);
     setMaster();
     await decodeAll(c);
+    if (disposed || ctx !== c) return;
     loop("music", music, 4);
     loop("river", river, 3);
     loop("birds", birds, 3);
   }
 
-  document.addEventListener("visibilitychange", () => {
-    if (!ctx) return;
-    if (document.hidden) void ctx.suspend();
-    else void ctx.resume();
-  });
+  const visibility = () => {
+    if (!ctx || disposed) return;
+    if (document.hidden) void ctx.suspend().catch(() => {});
+    else void ctx.resume().catch(() => {});
+  };
+  document.addEventListener("visibilitychange", visibility);
+
+  function setAiming(on: boolean) {
+    if (aiming === on) return;
+    aiming = on;
+    refreshMusic(0.25);
+  }
+  function updateWater(level: number, inPond: boolean) {
+    if (Math.abs(level - waterLevel) >= 0.005) {
+      waterLevel = level;
+      if (ctx && river) river.gain.setTargetAtTime(level, ctx.currentTime, 0.8);
+    }
+    if (pond !== inPond) {
+      pond = inPond;
+      if (ctx && birds) birds.gain.setTargetAtTime(inPond ? 0.55 : 0.3, ctx.currentTime, 1.5);
+    }
+  }
 
   return {
     preload,
@@ -227,6 +319,7 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
       return muted;
     },
     setMuted(m: boolean) {
+      if (disposed) return;
       muted = m;
       try {
         window.localStorage.setItem(MUTE_KEY, m ? "1" : "0");
@@ -240,24 +333,43 @@ export function createAudio(base = `${import.meta.env.BASE_URL}audio/`) {
     quack,
     /** Music dips and the brook comes forward while a gust is being aimed. */
     setFocus(aiming: boolean) {
-      if (!ctx || !music) return;
-      music.gain.setTargetAtTime(aiming ? 0.14 : 0.3, ctx.currentTime, 0.25);
+      if (disposed) return;
+      setAiming(aiming);
     },
     /** Faster water sounds louder; the pond is quieter water and more birdsong. */
     setWater(speed: number, pond: boolean) {
-      if (!ctx || !river || !birds) return;
+      if (disposed) return;
       const v = Math.min(1, 0.3 + speed * 0.3) * (pond ? 0.55 : 1);
-      river.gain.setTargetAtTime(v, ctx.currentTime, 0.8);
-      birds.gain.setTargetAtTime(pond ? 0.55 : 0.3, ctx.currentTime, 1.5);
+      updateWater(v, pond);
     },
     /** At the gathering the music settles. */
-    setEnding(ending: boolean) {
-      if (!ctx || !music) return;
-      music.gain.setTargetAtTime(ending ? 0.22 : 0.3, ctx.currentTime, 1);
+    setEnding(on: boolean) {
+      if (disposed || ending === on) return;
+      ending = on;
+      refreshMusic(1);
+    },
+    cancelPending,
+    reset() {
+      if (disposed) return;
+      for (const voice of voices) if (!voice.loop) release(voice);
+      aiming = ending = false;
+      refreshMusic(0.25);
     },
     dispose() {
+      if (disposed) return;
+      disposed = true;
+      lifetime.abort();
+      document.removeEventListener("visibilitychange", visibility);
       for (const l of loops) l.stop();
-      void ctx?.close();
+      loops.length = 0;
+      for (const voice of voices) release(voice);
+      for (const node of nodes) node.disconnect();
+      nodes.clear();
+      raw.clear();
+      buffers.clear();
+      noise = null;
+      if (ctx && ctx.state !== "closed") void ctx.close().catch(() => {});
+      ctx = master = music = ambience = river = birds = sfx = null;
     },
   };
 }

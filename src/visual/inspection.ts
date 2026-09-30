@@ -116,7 +116,20 @@ function inspect(renderer: WebGLRenderer, scene: Scene) {
 
 export function installVisualTest(adapter: VisualAdapter) {
   let bookmark = "unselected";
-  const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  let disposed = false;
+  const frames = new Map<number, () => void>();
+  const frame = () =>
+    new Promise<void>((resolve) => {
+      if (disposed) {
+        resolve();
+        return;
+      }
+      const id = requestAnimationFrame(() => {
+        frames.delete(id);
+        resolve();
+      });
+      frames.set(id, resolve);
+    });
   const api: VisualTest = {
     ready: (async () => {
       await document.fonts.ready;
@@ -125,22 +138,30 @@ export function installVisualTest(adapter: VisualAdapter) {
     })(),
     bookmarks: BOOKMARKS.map(({ id, purpose, hero, size }) => ({ id, purpose, hero, size })),
     async setBookmark(id) {
+      await api.ready;
+      if (disposed) throw new Error("The captured world has been disposed");
       if (!BOOKMARKS.some((b) => b.id === id)) throw new Error(`Unknown bookmark: ${id}`);
       adapter.apply(id);
       bookmark = id;
       return { bookmark };
     },
-    freeze: adapter.freeze,
+    freeze: () => {
+      if (!disposed) adapter.freeze();
+    },
     async settle(frames = 20) {
-      for (let i = 0; i < frames; i++) {
+      if (!Number.isFinite(frames) || frames < 0 || frames > 120)
+        throw new Error("Invalid frame count");
+      for (let i = 0; i < Math.floor(frames) && !disposed; i++) {
         await frame();
-        adapter.render();
+        if (!disposed) adapter.render();
       }
     },
-    info: () => ({ bookmark, ...inspect(adapter.renderer, adapter.scene) }),
-    quality: () => adapter.quality(),
-    degrade: () => adapter.degrade(),
+    info: () =>
+      disposed ? { disposed: true } : { bookmark, ...inspect(adapter.renderer, adapter.scene) },
+    quality: () => (disposed ? {} : adapter.quality()),
+    degrade: () => !disposed && adapter.degrade(),
     pick(x, y) {
+      if (disposed) return [];
       const ray = new Raycaster();
       ray.setFromCamera(new Vector2(x * 2 - 1, 1 - y * 2), adapter.camera);
       const seen = (o: unknown) => {
@@ -167,4 +188,19 @@ export function installVisualTest(adapter: VisualAdapter) {
     },
   };
   window.__VISUAL_TEST__ = api;
+  // Consumers still receive a rejected readiness promise, without an unobserved rejection.
+  void api.ready.catch(() => {});
+  return {
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      for (const [id, resolve] of frames) {
+        cancelAnimationFrame(id);
+        resolve();
+      }
+      frames.clear();
+      if (window.__VISUAL_TEST__ === api) delete window.__VISUAL_TEST__;
+      document.body.classList.remove("visual-no-ui");
+    },
+  };
 }
