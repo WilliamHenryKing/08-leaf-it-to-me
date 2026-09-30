@@ -54,5 +54,7 @@ export function wireVisualTest(host: VisualHost) {
     render() {
       world.frame(host.getState(), host.getAim(), 0, false);
     },
+    quality: () => world.stage.pipeline.state(),
+    degrade: () => world.stage.pipeline.step(),
   });
 }

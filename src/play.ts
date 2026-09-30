@@ -194,7 +194,11 @@ export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
     }
     requestAnimationFrame(loop);
   };
-  requestAnimationFrame(loop);
+  // Shaders compile behind the veil first (never holding it more than 8 s).
+  void Promise.race([
+    world.stage.precompile().catch(() => undefined),
+    new Promise((done) => setTimeout(done, 8000)),
+  ]).then(() => requestAnimationFrame(loop));
 
   wireVisualTest({
     course,

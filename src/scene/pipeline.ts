@@ -13,6 +13,26 @@ import type { Tier } from "./stage";
 
 type VisibilityPatched = { _overrideVisibility(): void; _visibilityCache: THREE.Object3D[] };
 
+/**
+ * Zeroes NaN and infinity (all exponent bits set: immune to fast-math) and caps HDR values
+ * before bloom. Some GPUs (Apple's) make NaN where others quietly don't, and bloom's blur
+ * would spread one bad pixel over the whole frame.
+ */
+const FiniteShader = {
+  name: "FiniteShader",
+  uniforms: { tDiffuse: { value: null } },
+  vertexShader:
+    "varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv;
+float finite(float x) {
+  return (floatBitsToUint(x) & 0x7f800000u) == 0x7f800000u ? 0.0 : clamp(x, 0.0, 16384.0);
+}
+void main() {
+  vec4 c = texture2D(tDiffuse, vUv);
+  gl_FragColor = vec4(finite(c.r), finite(c.g), finite(c.b), 1.0);
+}`,
+};
+
 export interface Pipeline {
   composer: EffectComposer;
   /** Transparent or effect-only objects the AO G-buffer must not see (water, streaks, glows). */
@@ -20,11 +40,19 @@ export interface Pipeline {
   setSize: (w: number, h: number, pixelRatio: number) => void;
   render: () => void;
   /**
-   * Adaptive quality: fed the real frame time; if frames stay slower than 60 fps for about two
-   * seconds, drop ambient occlusion, then bloom and a quarter of the pixel ratio. Never steps up,
-   * so it cannot oscillate. Returns the current step (0 = full quality).
+   * Adaptive quality: fed the real frame time; whenever frames stay slower than ~52 fps for
+   * about two seconds, take one step lighter (see step). Never steps up, so it cannot
+   * oscillate. Returns how many steps have been taken (0 = full quality).
    */
   adapt: (frameSeconds: number) => number;
+  /** One step lighter: GTAO, then resolution in tenths to 60 %, then bloom (false when spent). */
+  step: () => boolean;
+  /** Resolution scale the governor has reached (1 … 0.6); the stage applies it on resize. */
+  scale: () => number;
+  /** Called when the scale changes (the stage resizes). */
+  onScale: (fn: () => void) => void;
+  /** Where the governor has got to, for evidence and tests. */
+  state: () => Record<string, unknown>;
 }
 
 export function createPipeline(
@@ -32,6 +60,8 @@ export function createPipeline(
   scene: THREE.Scene,
   camera: THREE.Camera,
   tier: Tier,
+  /** Start without GTAO (integrated graphics). */
+  light = false,
 ): Pipeline {
   const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
   const composer = new EffectComposer(renderer, target);
@@ -86,7 +116,9 @@ export function createPipeline(
       });
     };
     composer.addPass(aoPass);
+    aoPass.enabled = !light;
   }
+  composer.addPass(new ShaderPass(FiniteShader));
 
   // Bloom models lens glare: only energy above the threshold contributes (lantern paper, sun glints).
   const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.28, 0.35, 2.2);
@@ -118,31 +150,56 @@ void main() {
   composer.addPass(new SMAAPass());
   composer.addPass(new OutputPass());
 
-  let step = 0;
+  let steps = 0;
+  let spent = false;
   let slowFor = 0;
   let average = 1 / 60;
-  const adapt = (frameSeconds: number) => {
-    if (frameSeconds <= 0 || step >= 2) return step;
-    average += (Math.min(frameSeconds, 0.25) - average) * 0.1;
-    slowFor = average > 1 / 60 ? slowFor + frameSeconds : 0;
-    if (slowFor < 2) return step;
-    slowFor = 0;
-    step++;
-    if (step === 1 && ao) ao.enabled = false;
-    if (step === 2 || (step === 1 && !ao)) {
-      step = 2;
-      bloom.enabled = false;
-      const ratio = renderer.getPixelRatio() * 0.75;
-      renderer.setPixelRatio(Math.max(0.75, ratio));
-      const size = renderer.getSize(new THREE.Vector2());
-      composer.setPixelRatio(renderer.getPixelRatio());
-      composer.setSize(size.x, size.y);
+  let scale = 1;
+  let rescale = () => {};
+  const step = () => {
+    if (ao?.enabled) {
+      ao.enabled = false;
+      return true;
     }
-    return step;
+    if (scale > 0.65) {
+      scale = Math.max(0.6, scale - 0.1);
+      rescale();
+      return true;
+    }
+    if (bloom.enabled) {
+      bloom.enabled = false;
+      return true;
+    }
+    return false;
+  };
+  const adapt = (frameSeconds: number) => {
+    if (frameSeconds <= 0 || spent) return steps;
+    average += (Math.min(frameSeconds, 0.25) - average) * 0.1;
+    // 19 ms, not 1/60 s: on a 60 Hz display the average hovers at 16.7 ms and jitter alone
+    // would read as slow.
+    slowFor = average > 0.019 ? slowFor + frameSeconds : 0;
+    if (slowFor < 2) return steps;
+    slowFor = 0;
+    average = 1 / 60;
+    if (step()) steps++;
+    else spent = true;
+    return steps;
   };
 
   return {
     adapt,
+    step,
+    scale: () => scale,
+    onScale(fn) {
+      rescale = fn;
+    },
+    state: () => ({
+      tier,
+      ao: ao?.enabled ?? false,
+      bloom: bloom.enabled,
+      pixelRatio: +renderer.getPixelRatio().toFixed(3),
+      scale: +scale.toFixed(2),
+    }),
     composer,
     hideFromAO: (o) => aoHidden.push(o),
     setSize(w, h, pixelRatio) {

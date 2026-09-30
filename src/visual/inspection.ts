@@ -21,6 +21,8 @@ export interface VisualAdapter {
   apply(id: string): void;
   freeze(): void;
   render(): void;
+  quality(): Record<string, unknown>;
+  degrade(): boolean;
 }
 
 export interface VisualTest {
@@ -30,6 +32,9 @@ export interface VisualTest {
   freeze(): void;
   settle(frames?: number): Promise<void>;
   info(): Record<string, unknown>;
+  /** The frame-time governor's state, and one step down as a slow run would take. */
+  quality(): Record<string, unknown>;
+  degrade(): boolean;
   /** What lies under a screen point (0..1, from top-left): for tracking down artefacts. */
   pick(x: number, y: number): { type: string; name: string; material: string; parent: string }[];
 }
@@ -133,6 +138,8 @@ export function installVisualTest(adapter: VisualAdapter) {
       }
     },
     info: () => ({ bookmark, ...inspect(adapter.renderer, adapter.scene) }),
+    quality: () => adapter.quality(),
+    degrade: () => adapter.degrade(),
     pick(x, y) {
       const ray = new Raycaster();
       ray.setFromCamera(new Vector2(x * 2 - 1, 1 - y * 2), adapter.camera);

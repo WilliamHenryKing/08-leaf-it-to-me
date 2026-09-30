@@ -14,6 +14,25 @@ export const toWorld = (x: number, y: number, h = 0) => new THREE.Vector3(x, h, 
 
 export type Tier = "high" | "low";
 
+/**
+ * Integrated or software graphics (from the GPU's name): the high tier then starts without
+ * GTAO, which the governor would otherwise drop within seconds.
+ */
+function modestGpu(): boolean {
+  try {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    if (!gl) return true;
+    const ext = gl.getExtension("WEBGL_debug_renderer_info");
+    const gpu = String(
+      ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+    );
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return !/nvidia|geforce|rtx|gtx|radeon (rx|pro)|amd radeon rx|apple m[2-9]/i.test(gpu);
+  } catch {
+    return true;
+  }
+}
+
 /** Phones and ?tier=low skip ambient occlusion and use smaller shadow and bloom buffers. */
 export function pickTier(): Tier {
   const asked = new URLSearchParams(location.search).get("tier");
@@ -44,6 +63,14 @@ export interface Stage {
   follow: (target: THREE.Vector3) => void;
   portrait: () => boolean;
   render: () => void;
+  /**
+   * Compile every shader before the first frame, once the day sky is in (an environment map
+   * changes every standard program): in parallel where the browser allows, for the HDR target
+   * the scene pass draws into (whose programs differ from on-screen ones); then draw everything
+   * once with culling off so the driver finishes each program for the layouts and passes it
+   * will meet (ANGLE builds its D3D shaders at the first draw). All behind the arrival veil.
+   */
+  precompile: () => Promise<void>;
 }
 
 const SHADOW_HALF = 12;
@@ -72,7 +99,16 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     powerPreference: "high-performance",
     stencil: false,
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, tier === "high" ? 2 : 1.5));
+  // Within a pixel budget per tier (a high-density screen need not draw every device pixel),
+  // times the governor's resolution scale; set on every resize.
+  const pixelRatio = () =>
+    Math.min(
+      window.devicePixelRatio || 1,
+      tier === "high" ? 2 : 1.5,
+      Math.sqrt(
+        (tier === "high" ? 3.7e6 : 1.2e6) / Math.max(1, canvas.clientWidth * canvas.clientHeight),
+      ),
+    ) * pipeline.scale();
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.AgXToneMapping;
   renderer.toneMappingExposure = 0.72;
@@ -105,7 +141,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   sun.shadow.radius = 2;
   scene.add(sun, sun.target);
 
-  const pipeline = createPipeline(renderer, scene, camera, tier);
+  const pipeline = createPipeline(renderer, scene, camera, tier, tier === "high" && modestGpu());
 
   // The two skies: a green woodland river for the brook, a low forest sun for the pond at dusk.
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -119,11 +155,16 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
       return { env, background: tex, horizon: horizonColour(tex) };
     });
   // The day sky comes first; the dusk sky is only needed at the pond, so it follows after.
+  let dayIn: () => void = () => {};
+  const dayReady = new Promise<void>((done) => {
+    dayIn = done;
+  });
   const ready = load("river_walk_1_1k.hdr")
     .then((day) => {
       skies.day = day;
       scene.environment = day.env;
       scene.background = day.background;
+      dayIn();
       return load("sunset_forest_1k.hdr");
     })
     .then((dusk) => {
@@ -131,13 +172,15 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     })
     .catch(() => {
       // Without the HDRIs the scene still renders by sun and fog alone.
-    });
+    })
+    .finally(() => dayIn());
 
   const portrait = () => canvas.clientWidth / Math.max(1, canvas.clientHeight) < 0.8;
 
   const resize = () => {
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
+    renderer.setPixelRatio(pixelRatio());
     renderer.setSize(w, h, false);
     pipeline.setSize(w, h, renderer.getPixelRatio());
     camera.aspect = w / Math.max(1, h);
@@ -160,6 +203,26 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     sun.position.copy(snapped).addScaledVector(toSun, 30);
   };
 
+  pipeline.onScale(resize);
+
+  const precompile = async () => {
+    await dayReady;
+    const previous = renderer.getRenderTarget();
+    renderer.setRenderTarget(pipeline.composer.readBuffer);
+    const compiling = renderer.compileAsync(scene, camera);
+    renderer.setRenderTarget(previous);
+    await compiling;
+    const culled: THREE.Object3D[] = [];
+    scene.traverse((o) => {
+      if (o.frustumCulled) {
+        o.frustumCulled = false;
+        culled.push(o);
+      }
+    });
+    pipeline.render();
+    for (const o of culled) o.frustumCulled = true;
+  };
+
   return {
     renderer,
     scene,
@@ -173,5 +236,6 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     follow,
     portrait,
     render: () => pipeline.render(),
+    precompile,
   };
 }
