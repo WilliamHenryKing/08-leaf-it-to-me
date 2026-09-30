@@ -26,6 +26,14 @@ import { wireVisualTest } from "./visual/wire";
 /** Time runs slowly while a gust is being aimed, so choices can be deliberate. */
 const AIM_TIME_SCALE = 0.3;
 
+/**
+ * The guided first minute: each step waits for the player to do the thing (or, for the last
+ * two, for a moment to pass), so the rules are learnt by sailing rather than read.
+ */
+export const GUIDE_STEPS = 4;
+/** Seconds the untimed-by-action steps (the current, the goal) stay up. */
+const GUIDE_HOLD = [0, 0, 9, 8];
+
 export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const course = createCourse();
@@ -51,6 +59,7 @@ export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
     aim: null,
     toast: null,
     hint: false,
+    guide: 0,
     muted: audio.muted,
     par: [...PAR],
     stars: [],
@@ -122,6 +131,15 @@ export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
     sync();
   };
 
+  let guideClock = 0;
+  const guideTo = (step: number) => {
+    guideClock = 0;
+    if (step >= GUIDE_STEPS) {
+      store.set({ hint: false });
+      writeHintSeen();
+    } else store.set({ guide: step });
+  };
+
   const input = attachInput(canvas, {
     toGame: world.toGame,
     aim(angle, strength) {
@@ -131,14 +149,13 @@ export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
         audio.setFocus(true);
       }
       aim = { angle, strength };
+      if (store.get().hint && store.get().guide === 0) guideTo(1);
       sync();
     },
     release() {
       if (aim && applyGust(course, state, aim.angle, aim.strength)) {
-        if (store.get().hint) {
-          store.set({ hint: false });
-          writeHintSeen();
-        }
+        const { hint, guide } = store.get();
+        if (hint && guide <= 2) guideTo(guide < 2 ? 2 : 3);
       }
       aim = null;
       audio.setFocus(false);
@@ -162,6 +179,16 @@ export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
       toggleMute();
     }
   });
+  // The title card's Enter: set sail (the card's own button takes focus, so this is for keys
+  // pressed elsewhere).
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && state.status === "intro" && !e.repeat) {
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("button")) return;
+      e.preventDefault();
+      api.start();
+    }
+  });
 
   const onResize = () => world.resize();
   window.addEventListener("resize", onResize);
@@ -182,6 +209,12 @@ export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
     last = now;
     const scale = aim ? AIM_TIME_SCALE : 1;
     if (!document.hidden) step(course, state, dt * scale);
+    // The guide's timed steps move on by themselves.
+    const g = store.get();
+    if (g.hint && state.status === "sailing" && (GUIDE_HOLD[g.guide] ?? 0) > 0) {
+      guideClock += real;
+      if (guideClock > (GUIDE_HOLD[g.guide] ?? 0)) guideTo(g.guide + 1);
+    }
     handle(takeEvents(state));
     world.frame(state, aim, dt, state.status !== "stranded", real);
     audio.setWater(Math.hypot(state.vx, state.vy), state.reach === 2);
@@ -234,7 +267,7 @@ export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
     }),
   };
 
-  return {
+  const api = {
     store,
     toggleMute,
     start() {
@@ -249,7 +282,8 @@ export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
         state.reach = reachAt(course, at);
         world.reset(state);
       }
-      store.set({ hint: !readHintSeen() });
+      guideClock = 0;
+      store.set({ hint: !readHintSeen(), guide: 0 });
       toast(`Reach 1 · ${course.reaches[0]?.name}`);
       sync();
     },
@@ -268,7 +302,8 @@ export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
     },
     showHint() {
       audio.play("click", 0.5);
-      store.set({ hint: true });
+      guideClock = 0;
+      store.set({ hint: true, guide: 0 });
     },
     hideHint() {
       audio.play("click", 0.5);
@@ -276,6 +311,7 @@ export function createPlay(canvas: HTMLCanvasElement, assets: Assets) {
       writeHintSeen();
     },
   };
+  return api;
 }
 
 export type Play = ReturnType<typeof createPlay>;

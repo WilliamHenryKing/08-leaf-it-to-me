@@ -13,6 +13,8 @@ export interface HudState {
   aim: { strength: number; spill: boolean; efficiency: number } | null;
   toast: { id: number; text: string } | null;
   hint: boolean;
+  /** The guided first minute: which step is showing (see GUIDE in play.ts). */
+  guide: number;
   muted: boolean;
   par: number[];
   /** Stars earned this run, per finished reach. */

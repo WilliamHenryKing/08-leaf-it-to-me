@@ -1,7 +1,7 @@
 // Assembles the brook and animates it from the game state each frame.
 import gsap from "gsap";
 import * as THREE from "three";
-import type { Course } from "../game/course";
+import { type Course, centreX } from "../game/course";
 import { type GameEvent, type GameState, predict, SPILL_AT } from "../game/sim";
 import type { Assets } from "./assets";
 import { createBanks } from "./banks";
@@ -82,8 +82,49 @@ export function createWorld(
   const tmp = new THREE.Vector3();
   const dur = (s: number) => (reducedMotion ? s * 0.45 : s);
 
+  // The opening, as a film. While the title card is up the camera starts low beside the beetle
+  // in its leaf, then cranes up and back until the brook opens out ahead toward the Root
+  // Tunnel, and drifts there. "Set sail" glides it down into the chase view behind the boat.
+  const smooth = (t: number) => t * t * (3 - 2 * t);
+  const CRANE = 8.5;
+  const GLIDE = 2.6;
+  let titleClock = 0;
+  let wasIntro = true;
+  let glide = -1;
+  const glideEye = new THREE.Vector3();
+  const glideLook = new THREE.Vector3();
+  const titleEye = new THREE.Vector3();
+  const titleLook = new THREE.Vector3();
+  const low = new THREE.Vector3(1.15, 0.42, 1.65);
+  const high = new THREE.Vector3(-3.4, 8.4, 9.8);
+  function titleShot(t: number) {
+    const s = boat.group.position;
+    const ahead = course.start.y + 24;
+    const k = reducedMotion ? 1 : smooth(Math.min(1, t / CRANE));
+    titleEye.copy(low).lerp(high, k);
+    // A crane's arc: up first, then back.
+    titleEye.y += Math.sin(k * Math.PI) * 1.4;
+    if (!reducedMotion && t > CRANE) {
+      titleEye.applyAxisAngle(THREE.Object3D.DEFAULT_UP, Math.sin((t - CRANE) * 0.11) * 0.22);
+    }
+    titleEye.add(s);
+    titleLook.set(s.x, 0.16, s.z).lerp(toWorld(centreX(ahead), ahead), k);
+  }
+  /** Frame the subject clear of the title card: right of centre, or above it on a phone. */
+  function titleFraming(k: number) {
+    if (k <= 0.001) {
+      if (camera.view?.enabled) camera.clearViewOffset();
+      return;
+    }
+    const w = canvas.clientWidth || 1;
+    const h = canvas.clientHeight || 1;
+    const portrait = stage.portrait();
+    camera.setViewOffset(w, h, portrait ? 0 : -w * 0.17 * k, portrait ? h * 0.16 * k : 0, w, h);
+  }
+
   function placeCamera(state: GameState, dt: number) {
     if (view) {
+      titleFraming(0);
       camera.position.set(...view.position);
       camera.lookAt(...view.target);
       if (view.fov && camera.fov !== view.fov) {
@@ -92,6 +133,26 @@ export function createWorld(
       }
       stage.follow(tmp.set(...view.target));
       return;
+    }
+    if (state.status === "intro") {
+      titleFraming(1);
+      titleShot(titleClock);
+      camera.position.copy(titleEye);
+      camera.lookAt(titleLook);
+      camPos.copy(titleEye);
+      look.copy(titleLook);
+      focus.copy(boat.group.position);
+      stage.follow(focus);
+      wasIntro = true;
+      first = false;
+      return;
+    }
+    if (wasIntro) {
+      // Set sail: glide from wherever the title shot had got to.
+      wasIntro = false;
+      glide = reducedMotion ? -1 : 0;
+      glideEye.copy(camPos);
+      glideLook.copy(look);
     }
     const portrait = stage.portrait();
     const target = boat.group.position;
@@ -106,16 +167,26 @@ export function createWorld(
       focus.lerp(target, first ? 1 : 1 - Math.exp(-dt * 3));
       off = portrait ? new THREE.Vector3(0, 7.2, 6.4) : new THREE.Vector3(0, 4.6, 6);
       ahead = portrait ? -2.6 : -2.2;
-      if (state.status === "intro" && !reducedMotion) {
-        off.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.sin(clock * 0.25) * 0.35);
-      }
     }
     tmp.copy(focus).add(off);
-    camPos.lerp(tmp, first ? 1 : 1 - Math.exp(-dt * 2.2));
+    const gliding = glide >= 0;
+    camPos.lerp(tmp, first || gliding ? 1 : 1 - Math.exp(-dt * 2.2));
     tmp.set(focus.x, 0, focus.z + ahead);
-    look.lerp(tmp, first ? 1 : 1 - Math.exp(-dt * 3));
-    camera.position.copy(camPos);
-    camera.lookAt(look);
+    look.lerp(tmp, first || gliding ? 1 : 1 - Math.exp(-dt * 3));
+    if (gliding) {
+      glide += dt;
+      const k = smooth(Math.min(1, glide / GLIDE));
+      titleFraming(1 - k);
+      camera.position.copy(glideEye).lerp(camPos, k);
+      // Swing wide on the way down, so the glide reads as a move rather than a zoom.
+      camera.position.y += Math.sin(k * Math.PI) * 0.8;
+      camera.lookAt(tmp.copy(glideLook).lerp(look, k));
+      if (glide >= GLIDE) glide = -1;
+    } else {
+      titleFraming(0);
+      camera.position.copy(camPos);
+      camera.lookAt(look);
+    }
     stage.follow(focus);
     first = false;
   }
@@ -233,6 +304,7 @@ export function createWorld(
     },
     frame(state: GameState, aim: Aim | null, dt: number, flowing: boolean, frameSeconds = 0) {
       clock += dt;
+      if (state.status === "intro") titleClock += dt;
       if (adaptive) stage.pipeline.adapt(frameSeconds);
       placeBoat(state);
       const here = state.status === "finished" ? { gloom: 0, warmth: 1 } : moodAt(state.x, state.y);
