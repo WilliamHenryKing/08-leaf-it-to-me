@@ -1,0 +1,38 @@
+{
+  "slug": "08-leaf-it-to-me",
+  "sourceCommit": "ed83285b5a8541d4992e6c033537113007bba855",
+  "url": "https://08-leaf-it-to-me.williamking.workers.dev",
+  "capturedAt": "2026-10-01T06:17:44.433Z",
+  "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 (0x00001F15) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "errors": [],
+  "desktop": {
+    "width": 1440,
+    "height": 900
+  },
+  "phone": {
+    "width": 390,
+    "height": 844
+  },
+  "frames": 48,
+  "browser": "154.0.8037.58",
+  "assets": [
+    "/assets/index-BZ-OBeqH.js"
+  ],
+  "matchesLocalBuild": true,
+  "phoneOverflow": false,
+  "gifBytes": 5405569,
+  "description": "The current brook title shot gliding down to the leaf boat and sailing guide",
+  "phoneIsEmulated": true,
+  "loop": {
+    "frames": 48,
+    "delayCentiseconds": 16,
+    "width": 560,
+    "disposal": "None"
+  },
+  "media": [
+    "preview.gif",
+    "desktop.jpg",
+    "detail.jpg",
+    "phone.jpg"
+  ]
+}

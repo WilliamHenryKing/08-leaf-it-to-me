@@ -1,87 +1,79 @@
-<div align="center">
+# LEAF IT TO ME
 
-<img src="docs/readme/banner.svg" alt="LEAF IT TO ME: a curled-leaf boat with a beetle in a coat bobbing down a brook at dusk" width="100%" />
+<p align="center"><img src="docs/readme/banner.svg" alt="LEAF IT TO ME" width="100%"></p>
 
-<br />
+A beetle, a curled-leaf boat and three reaches of a miniature brook. Aim a brief gust, fill the petal sail and let the current do some of the work. Read the foam, choose a passage and arrive at the lantern gathering with as few puffs as possible.
 
-<a href="https://08-leaf-it-to-me.williamking.workers.dev"><img alt="Play it live" src="https://img.shields.io/badge/Play_it_live-%E2%86%92-4d6a28?style=for-the-badge&color=4d6a28&logoColor=white&labelColor=2a3320" /></a>
-<img alt="three.js 0.186" src="https://img.shields.io/badge/three.js-0.186-4d6a28?style=for-the-badge&color=4d6a28&logoColor=white&logo=threedotjs" />
-<img alt="React 19" src="https://img.shields.io/badge/React-19-4d6a28?style=for-the-badge&color=4d6a28&logoColor=white&logo=react" />
-<img alt="TypeScript strict" src="https://img.shields.io/badge/TypeScript-strict-4d6a28?style=for-the-badge&color=4d6a28&logoColor=white&logo=typescript" />
-<img alt="Vite 8" src="https://img.shields.io/badge/Vite-8-4d6a28?style=for-the-badge&color=4d6a28&logoColor=white&logo=vite" />
-<img alt="GSAP 3" src="https://img.shields.io/badge/GSAP-3-4d6a28?style=for-the-badge&color=4d6a28&logoColor=white&logo=greensock" />
-<img alt="Tailwind CSS 4" src="https://img.shields.io/badge/Tailwind_CSS-4-4d6a28?style=for-the-badge&color=4d6a28&logoColor=white&logo=tailwindcss" />
-<img alt="Bun" src="https://img.shields.io/badge/Bun-1.3-4d6a28?style=for-the-badge&color=4d6a28&logoColor=white&logo=bun" />
+**[Set sail →](https://08-leaf-it-to-me.williamking.workers.dev)** · [Run locally](#run-locally) · [Credits](#credits)
 
-<h3>A miniature river adventure where you are the wind: read the current, pick your passage, and blow a beetle in a good coat all the way to the lantern gathering.</h3>
+<p align="center"><img src="docs/readme/preview.gif" alt="The current brook title shot gliding down to the leaf boat and sailing guide" width="800"></p>
 
-<img src="docs/readme/preview.gif" alt="Gameplay: the leaf rides the current towards a fallen branch, a crosswind is aimed with a dotted route preview, and the leaf slips through the fast chute to clear the first reach" width="800" />
+## A small gust goes a long way
 
-</div>
+**Set sail** moves the opening camera from the brook down to the boat. The four-step guide waits for your first aim and gust before explaining the current and stars. Help can be replayed, and later instructions reflect the reach you are sailing.
 
-## How to play
-
-Nudge a curled-leaf boat down three reaches of one brook (the **Flooded Flowerpot**, the **Root Tunnel** and the **Lantern Pond**) using nothing but brief gusts of wind.
-
-| Action | Touch / mouse | Keyboard |
+| Action | Pointer or touch | Keyboard |
 | --- | --- | --- |
-| Aim a gust | Drag anywhere: the gust blows the way you drag | `←` `→` turn the gust |
-| Set its strength | Drag further for a stronger gust | `↑` `↓` |
-| Blow | Let go | `Space` or `Enter` |
-| Cancel an aim | Drag back to where you started | `Esc` |
-| Mute / unmute | Speaker button | `M` |
-| Controls again / restart | `?` / `↺` buttons | |
+| Aim | Drag in the direction you want to blow | Left/Right |
+| Set strength | Drag farther | Up/Down |
+| Blow | Release | Space or Enter |
+| Cancel | Return to the drag's starting point | Escape |
+| Help / restart | Help and restart controls | Tab to the controls |
+| Toggle sound | Sound | M |
 
-- **Time slows while you aim**, and a dotted line previews the next three seconds, including gust cooldown. Drag on the water; return to the starting point or cancel the drag to keep sailing without a gust.
-- **Read the water.** Long, bright foam streaks mean fast water, faint ones slack water, and curling lines an eddy. Clear shallows show the gravel bed, and shade under clover, roots and reeds is a **wind shadow**, where gusts barely reach the sail.
-- **Stronger isn't always better.** A gust from behind fills the petal sail best; past about 70% the sail spills the wind and soaks the beetle.
-- **Every reach has two passages**: the fast chute or the sheltered lane past the flowerpot; under the root or round the outside; the pond's gyre or straight across to the gathering.
-- The skippable opening holds the boat until the camera arrives. The four-step guide waits for your first aim and gust, then explains the current and stars. `?` replays help for the current reach.
-- **Par is 2 gusts per reach.** Beat it for ★★★, and your best stars are saved in your browser. Get stuck and a duck carries you back to the last calm pool, but it costs you two gusts.
+Time slows while you aim. The dotted three-second preview includes the current and gust cooldown. Long foam streaks indicate fast flow; curling ones show eddies. Clover, roots and reeds create wind shadows, so the same gust can work differently a little farther along the bank. A very strong gust spills wind from the sail and sprays the beetle.
 
-## What's inside
+## Choose your passage
 
-- 🌊 **A current you can read**: hundreds of foam streaks and petals ride the same authored flow field the physics uses, so what you see is what moves the boat.
-- 🍃 **A leaf boat with momentum**: a curled leaf, twig mast and petal sail that heels, billows and spills wind, with a beetle in a coat who shakes off the spray.
-- 🪴 **Three places, one brook**: a flooded flowerpot and a fallen branch, a dim root tunnel with shafts of light, and a warm lantern pond at dusk with fireflies and a crowd of bugs waiting on the raft.
-- 🦆 **Gentle failure**: stuck against a root? A very large duck lifts you back to the last calm pool, and you're sailing again in seconds.
-- ⭐ **Par and stars** for each reach, a summary at the pond, and best results remembered.
-- 🎧 **Sound design**: a CC0 music loop and brook ambience that follow where you are, sampled effects, and a gust and quack synthesized live in Web Audio.
-- ♿ **Plays anywhere**: mouse, touch and keyboard, phone and desktop layouts, `prefers-reduced-motion` respected, and persistent mute.
+The **Flooded Flowerpot**, **Root Tunnel** and **Lantern Pond** each have two routes: a fast channel or sheltered lane, a passage beneath the root or around it, and a pond gyre or direct crossing. Par is two gusts per reach. Best stars are saved locally; a duck returns a stranded boat to a calm pool at a cost of two gusts.
 
-## Screenshots
+The scene uses scanned CC0 surfaces, a moving water surface, foam and petals that follow the same authored flow field as the simulation. The leaf bends and heels around its twig mast, while the beetle reacts to spray. Sound combines water, wind, movement cues and the final gathering.
 
-<table>
-  <tr>
-    <td width="72%"><img src="docs/readme/desktop.png" alt="Desktop: aiming a crosswind at the fallen branch, with the dotted route preview curling left through the chute" /></td>
-    <td width="28%"><img src="docs/readme/phone.png" alt="Phone: the same moment in portrait, with the reach, gusts, par and lantern count in the corner" /></td>
-  </tr>
-  <tr>
-    <td align="center">Desktop, 1440 × 900</td>
-    <td align="center">Phone, 390 × 844</td>
-  </tr>
-</table>
+## Engineering and verification
 
-## Built with
+Fixed-step sailing and preview use the same rules. Fractional time, collisions, rescue settlement and cooldown are tested explicitly. Pointer ownership survives camera motion, canceled drags, resize, blur and hidden tabs. Adaptive rendering and prepared shaders limit frame cost; the first successful draw gates the opening.
 
-**three.js** (no React Three Fiber), **React 19** for the HUD, strict **TypeScript**, **Vite**, **GSAP**, **Tailwind CSS v4**, **Biome** and **Bun**, with **Playwright** for the end-to-end test. Rendering: AgX tone mapping applied once in an `OutputPass`, a CC0 river HDRI as image-based light, GTAO, thresholded bloom and SMAA, with a lighter tier for phones.
+Application revision `ed83285` passed **82 tests / 501 assertions**, ten RTX 2060 scenarios and five final-build regressions. Both complete route branches, all three reaches, rescue, ending/replay, compact touch layouts and recovery are covered. See the [bug-pass report](docs/visual/BUG-PASS-2026-09-30.md).
 
-Notable techniques:
+Browse [src/game/](src/game/) for flow and sailing rules, [src/scene/](src/scene/) for the brook and boat, [src/ui/](src/ui/) for guides and controls, and [src/audio/](src/audio/) for the sound mix.
 
-- **Authored current and wind fields.** The brook is data: jets, eddies, calm pools and wind shadows blended into a single `currentAt(x, y)` and `windAt(x, y)` (`src/game/field.ts`). The same field drives the physics, the dotted route preview, the drifting foam streaks and a baked flow map in the water shader, so the water always tells the truth.
-- **A leaf-boat simulation you can predict.** Fixed-step drag towards the current, momentum, sail efficiency by gust angle, spill above 70%, collisions and stranding are all pure TypeScript (`src/game/sim.ts`). A cloned-state `predict()` draws the route before you commit, and unit tests sail both passages of the first two reaches and the finish at the pond.
-- **A flow-mapped water shader.** A patched `MeshStandardMaterial` advects two cross-faded ripple phases and flow-aligned foam along the baked current. It turns see-through in the shallows, and shade and warmth ease with each place.
+## Current screenshots
 
-## Run it locally
+| Desktop | Phone |
+| --- | --- |
+| <img src="docs/readme/desktop.jpg" alt="LEAF IT TO ME: current desktop opening" width="600"> | <img src="docs/readme/phone.jpg" alt="LEAF IT TO ME: current phone interface" width="240"> |
+
+<img src="docs/readme/detail.jpg" alt="LEAF IT TO ME: the experience after the opening" width="800">
+
+The opening loop and three main screenshots were captured from the live site on **1 October 2026**, using Chrome on this workstation; the phone image is a 390 × 844 browser viewport. The animated preview is a short loop, not a full playthrough. [Capture details](docs/readme/capture.json).
+
+## Run locally
+
+Use **Bun 1.3.10** (the version pinned in `package.json`) and Node.js 22.12 or newer. From this repository:
 
 ```sh
-bun install
+bun install --frozen-lockfile
 bun run dev      # http://127.0.0.1:4518/
-bun run check    # strict tsc, Biome, bun test, production build into dist/
-bun run e2e      # both full routes, rescue/replay, touch/input and loading recovery
+bun run check    # strict types, Biome, unit tests and production build
+bun run preview  # http://127.0.0.1:4618/ after the build
 ```
 
-Layout: `src/game/` pure rules, course data and scoring (unit-tested in `tests/`); `src/scene/` the three.js world, effects and input; `src/audio/` sound; `src/ui/` the React HUD; `src/play.ts` and `src/main.tsx` the wiring; `e2e/` the end-to-end test.
+Development and preview are separate long-running commands; run one at a time or use separate terminals. `bun run build` writes the static production output to `dist/`. Dependencies and the lockfile are local to this project.
+
+### Browser suite
+
+Install the test browser once, then run the checked-in Playwright suite. Its configuration builds and starts the production preview. Browser scenarios are separate from `bun run check`.
+
+```sh
+bunx playwright install chromium
+bun run e2e
+```
+
+The recorded real-GPU release checks used installed Chrome on an RTX 2060; the default Chromium configuration is not a claim of physical-phone coverage.
+
+## Stack and release
+
+Direct Three.js 0.186 · React 19.3 · strict TypeScript · Vite 8.3 · GSAP 3.15 · Tailwind CSS 4.3 · Bun 1.3.10 · Biome. The public website is served by Cloudflare Workers. This README describes [application revision ed83285](https://github.com/WilliamHenryKing/08-leaf-it-to-me/commit/ed83285b5a8541d4992e6c033537113007bba855); the documentation refresh changes no application behaviour.
 
 ## Credits
 
@@ -93,16 +85,16 @@ The brook's environment light, ground, stones, bark and flowerpot are CC0 scans 
 
 | File(s) | Used for | Source | Author | Licence |
 | --- | --- | --- | --- | --- |
-| `env/river_walk_1_1k.hdr` | Environment light, reflections and sky (reaches 1–2) | https://polyhaven.com/a/river_walk_1 | Greg Zaal | CC0 |
-| `env/sunset_forest_1k.hdr` | Dusk environment at the Lantern Pond | https://polyhaven.com/a/sunset_forest | Andreas Mischok | CC0 |
-| `textures/clean_pebbles/*` | The river bed | https://polyhaven.com/a/clean_pebbles | Rob Tuytel | CC0 |
-| `textures/mud_forest/*` | Wet mud at the waterline, the tunnel overhang | https://polyhaven.com/a/mud_forest | Rob Tuytel | CC0 |
-| `textures/brown_mud_leaves_01/*` | Mossy leaf litter on the banks | https://polyhaven.com/a/brown_mud_leaves_01 | Rob Tuytel | CC0 |
-| `textures/bark_brown_02/*` | The branch, roots and raft | https://polyhaven.com/a/bark_brown_02 | Rob Tuytel | CC0 |
-| `models/rock_moss_set_01*.glb` | Rocks in the water, bank boulders | https://polyhaven.com/a/rock_moss_set_01 | Kless Gyzen | CC0 |
-| `models/rock_moss_set_02_lod.glb` | Pebbles on the bed and waterline | https://polyhaven.com/a/rock_moss_set_02 | Kless Gyzen | CC0 |
-| `models/planter_pot_clay.glb` | The flooded flowerpot | https://polyhaven.com/a/planter_pot_clay | Amal Kumar | CC0 |
-| `models/tree_stump_01.glb` | Mossy stumps on the banks | https://polyhaven.com/a/tree_stump_01 | Rob Tuytel | CC0 |
+| `env/river_walk_1_1k.hdr` | Environment light, reflections and sky (reaches 1–2) | [Source](https://polyhaven.com/a/river_walk_1) | Greg Zaal | CC0 |
+| `env/sunset_forest_1k.hdr` | Dusk environment at the Lantern Pond | [Source](https://polyhaven.com/a/sunset_forest) | Andreas Mischok | CC0 |
+| `textures/clean_pebbles/*` | The river bed | [Source](https://polyhaven.com/a/clean_pebbles) | Rob Tuytel | CC0 |
+| `textures/mud_forest/*` | Wet mud at the waterline, the tunnel overhang | [Source](https://polyhaven.com/a/mud_forest) | Rob Tuytel | CC0 |
+| `textures/brown_mud_leaves_01/*` | Mossy leaf litter on the banks | [Source](https://polyhaven.com/a/brown_mud_leaves_01) | Rob Tuytel | CC0 |
+| `textures/bark_brown_02/*` | The branch, roots and raft | [Source](https://polyhaven.com/a/bark_brown_02) | Rob Tuytel | CC0 |
+| `models/rock_moss_set_01*.glb` | Rocks in the water, bank boulders | [Source](https://polyhaven.com/a/rock_moss_set_01) | Kless Gyzen | CC0 |
+| `models/rock_moss_set_02_lod.glb` | Pebbles on the bed and waterline | [Source](https://polyhaven.com/a/rock_moss_set_02) | Kless Gyzen | CC0 |
+| `models/planter_pot_clay.glb` | The flooded flowerpot | [Source](https://polyhaven.com/a/planter_pot_clay) | Amal Kumar | CC0 |
+| `models/tree_stump_01.glb` | Mossy stumps on the banks | [Source](https://polyhaven.com/a/tree_stump_01) | Rob Tuytel | CC0 |
 
 The rendering approach (post-processing chain, HDRI environment, Fresnel water over a visible bed) was adapted from William King's earlier collection project ODD TIDE, with his permission.
 
@@ -112,17 +104,17 @@ Sound starts on the first tap, click or key press. Music and ambience loop in co
 
 | File | Used for | Source | Author | Licence |
 | --- | --- | --- | --- | --- |
-| `music.mp3` | Music (first 105 s of "Sunset Plains") | https://opengameart.org/content/sunset-plains | yoiyami | CC0 |
-| `river.mp3` | Brook ambience (excerpt of `park_ambience_river.wav`) | https://opengameart.org/content/park-ambiences | thimras | CC0 |
-| `birds.mp3` | Birdsong ambience (excerpt of `park_ambience_birds.wav`) | https://opengameart.org/content/park-ambiences | thimras | CC0 |
-| `splash-small.mp3`, `splash-big.mp3` | Bumps, spills, the duck setting the boat down (`splash_10`, `splash_07`) | https://opengameart.org/content/40-cc0-water-splash-slime-sfx | rubberduck | CC0 |
-| `sail.mp3` | The sail filling on each gust (`cloth1`) | https://kenney.nl/assets/rpg-audio | Kenney (kenney.nl) | CC0 |
-| `bump.mp3` | Hitting wood or stone (`impactWood_light_001`) | https://kenney.nl/assets/impact-sounds | Kenney (kenney.nl) | CC0 |
-| `lantern.mp3`, `click.mp3`, `toggle.mp3`, `aim.mp3` | Lantern gathered, buttons, mute, start of aiming (`glass_004`, `click_001`, `toggle_001`, `pluck_002`) | https://kenney.nl/assets/interface-sounds | Kenney (kenney.nl) | CC0 |
-| `checkpoint.mp3`, `finish.mp3` | New reach, arrival at the gathering (`jingles_PIZZI07`, `jingles_STEEL02`) | https://kenney.nl/assets/music-jingles | Kenney (kenney.nl) | CC0 |
+| `music.mp3` | Music (first 105 s of "Sunset Plains") | [Source](https://opengameart.org/content/sunset-plains) | yoiyami | CC0 |
+| `river.mp3` | Brook ambience (excerpt of `park_ambience_river.wav`) | [Source](https://opengameart.org/content/park-ambiences) | thimras | CC0 |
+| `birds.mp3` | Birdsong ambience (excerpt of `park_ambience_birds.wav`) | [Source](https://opengameart.org/content/park-ambiences) | thimras | CC0 |
+| `splash-small.mp3`, `splash-big.mp3` | Bumps, spills, the duck setting the boat down (`splash_10`, `splash_07`) | [Source](https://opengameart.org/content/40-cc0-water-splash-slime-sfx) | rubberduck | CC0 |
+| `sail.mp3` | The sail filling on each gust (`cloth1`) | [Source](https://kenney.nl/assets/rpg-audio) | Kenney (kenney.nl) | CC0 |
+| `bump.mp3` | Hitting wood or stone (`impactWood_light_001`) | [Source](https://kenney.nl/assets/impact-sounds) | Kenney (kenney.nl) | CC0 |
+| `lantern.mp3`, `click.mp3`, `toggle.mp3`, `aim.mp3` | Lantern gathered, buttons, mute, start of aiming (`glass_004`, `click_001`, `toggle_001`, `pluck_002`) | [Source](https://kenney.nl/assets/interface-sounds) | Kenney (kenney.nl) | CC0 |
+| `checkpoint.mp3`, `finish.mp3` | New reach, arrival at the gathering (`jingles_PIZZI07`, `jingles_STEEL02`) | [Source](https://kenney.nl/assets/music-jingles) | Kenney (kenney.nl) | CC0 |
 
 The gust's rush of air and the duck's quack are synthesized live with the Web Audio API (`src/audio/audio.ts`). No CC0 quack recording could be found.
 
 ---
 
-<p align="center"><sub>Part of William King's portfolio collection.</sub></p>
+Part of [William King's portfolio collection](https://github.com/WilliamHenryKing).
